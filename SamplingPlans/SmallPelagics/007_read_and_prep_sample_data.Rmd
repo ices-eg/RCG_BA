@@ -1,0 +1,158 @@
+---
+title: "007_read_and_prep_sample_data"
+author: "Kirsten Birch Håkansson, DTU Aqua"
+date: "06/06/2019"
+output: pdf_document
+---
+
+
+```{r setup, include=FALSE}
+
+library(fishPiCodes)	
+library(dplyr)
+library(knitr)
+library(lubridate)
+library(ggplot2)
+
+data_dir <- "Q:/dfad/users/kibi/data/RCG/from_share_point/"
+
+knitr::opts_chunk$set(
+  echo = F,
+  warning = F,
+  message = F,
+  error = F,
+  comment = F)
+
+#setwd("SamplingPlans/SmallPelagics")
+```
+
+# Read in RDB CS data
+
+Only selecting samples with heernig | sprat in area 27.3
+
+```{r data, include = F, eval = T}
+
+tr <- read.csv(paste0(data_dir, "CS TR Trip 2009-2018.csv"), sep = ";", na.strings = "NULL")
+tr <- rename(tr, CS_TripId = ï..CS_TripId)
+tr_1 <- filter(tr, Year %in% c(2017, 2018))
+
+#hl <- read.csv(paste0(data_dir, "CS HL SMAWL 2009-2018.csv"), sep = ";", na.strings = "NULL")
+
+ca <- read.csv(paste0(data_dir, "CS CA SMAWL 2009-2018.csv"), sep = ";", na.strings = "NULL")
+ca_1 <- filter(ca, Year %in% c(2017, 2018))
+ca_1
+rm(ca)
+
+ca_spf <- filter(ca_1, Species %in% c("Clupea harengus", "Sprattus sprattus") & Area %in% c("27.3.a", "27.3.a.20", "27.3.a.21", "27.3.b", 
+                                                                                   "27.3.b.23", "27.3.c", "27.3.c.22", "27.3.d",
+                                                                                   "27.3.d.24", "27.3.d.25", "27.3.d.26", "27.3.d.27",
+                                                                                   "27.3.d.28", "27.3.d.28.1", "27.3.d.28.2", "27.3.d.29",
+                                                                                   "27.3.d.30", "27.3.d.31", "27.3.d.32"))
+ca_spf$Area <- as.character(ca_spf$Area)
+
+ca_spf <- mutate(ca_spf, Area = ifelse(!(FlagCountry %in% c("LVA", "EST")) & Area == "27.3.d.28", "27.3.d.28.2", Area))
+
+ca_spf <- mutate(ca_spf, Area = ifelse(Species == "Sprattus sprattus" &  Area %in% c("27.3.d.28.1", "27.3.d.28.2"), "27.3.d.28", Area),
+                 area = Area)
+
+```
+
+
+# Adding stock
+
+```{r add stock, include = T}
+
+unique(ca_spf$Area)
+
+#Add stock
+#Add sppFAO - this is needed for the stock function
+data(ASFIS)
+
+FAO <- distinct(ASFIS, X3A_CODE, Scientific_name)
+FAO <- rename(FAO, sppFAO = X3A_CODE, Species = Scientific_name)
+
+ca_spf <- left_join(ca_spf, FAO)
+
+source("Q:/mynd/kibi/functions/GetStock_v1_1.R")
+
+ca_spf <- GetStock(ca_spf, rect = F)
+
+no_stock <- summarise(group_by(filter(ca_spf, stock == "no.defined.stock" & Species %in% c("Clupea harengus", "Sprattus sprattus")), Species, Area, Year, FlagCountry), no_trips = length(unique(CS_TripId)))
+
+```
+
+## Missing stock
+
+Some samples without stock
+
+```{r}
+#kable(summarise(group_by(ca_spf, stock, Year, FlagCountry), no_trips = length(unique(CS_TripId))))
+
+kable(no_stock)
+```
+
+
+# Adding sampling country
+
+- more precisely upload country
+
+
+This is not in the format, but deduced from project names
+
+```{r}
+
+kable(distinct(filter(ca_spf, !(is.na(Age))), LandingCountry, FlagCountry, Project))
+
+```
+
+```{r, include = F}
+
+ca_spf <- mutate(ca_spf, SamplingCountry = ifelse(Project == "DCF-OF", "DEU",
+                                                  ifelse(Project == "LitDCP", "LTU",
+                                                         ifelse(Project == "LatDCP", "LVA",
+                                                                ifelse(Project == "npzdr", "POL", substr(Project, 1, 3))))))
+
+```
+
+
+```{r}
+
+kable(distinct(filter(ca_spf, !(is.na(Age))), LandingCountry, FlagCountry, Project, SamplingCountry))
+
+```
+
+# Adding vessel length category
+
+All trip from the RDB CS data are present - not only BS SPF samples
+
+```{r}
+
+kable(distinct(tr_1, VesselLength))
+
+```
+
+
+```{r, include = F}
+
+tr_2 <- mutate(tr_1, VesselLengthCategory = ifelse(VesselLength < 10, "VL0010",
+                                   ifelse(VesselLength >= 10 & VesselLength < 12, "VL1012",
+                                          ifelse(VesselLength >= 12 & VesselLength < 18, "VL1218",
+                                                 ifelse(VesselLength >= 18 & VesselLength < 24, "VL1824",
+                                                        ifelse(VesselLength >= 24 & VesselLength < 40, "VL2440",
+                                                               ifelse(VesselLength >= 40, "VL40xx", NA)))))))
+
+```
+
+```{r}
+
+kable(arrange(distinct(tr_2, VesselLength, VesselLengthCategory), VesselLength))
+
+```
+
+
+```{r save_data, include = F, eval = T}
+
+saveRDS(ca_spf, paste(data_dir, "ca_bs_spf.rds", sep = ""))
+saveRDS(tr_2, paste(data_dir, "tr_bs_spf.rds", sep = ""))
+
+```

@@ -1,0 +1,136 @@
+---
+title: "007_read_and_prep_sample_data"
+author: "Kirsten Birch Håkansson, DTU Aqua"
+date: "06/06/2019"
+output: pdf_document
+---
+
+
+```{r setup, include=FALSE}
+
+library(fishPiCodes)	
+library(dplyr)
+library(knitr)
+library(lubridate)
+library(ggplot2)
+
+data_dir <- "Q:/dfad/users/kibi/data/RCG/from_share_point/"
+
+knitr::opts_chunk$set(
+  echo = F,
+  warning = F,
+  message = F,
+  error = F,
+  comment = F)
+
+#setwd("SamplingPlans/SmallPelagics")
+```
+
+# Data
+
+Only selecting samples with heernig | sprat in area 27.3
+
+```{r read_data, include = F, eval = T}
+
+ca_spf <- readRDS(paste(data_dir, "ca_bs_spf.rds", sep = ""))
+
+tr <- readRDS(paste(data_dir, "tr_bs_spf.rds", sep = ""))
+
+trca <- right_join(tr, ca_spf)
+
+```
+
+# Number of trips - overall
+
+## Trying to count with CA only
+
+### All CA records
+
+```{r}
+
+kable(summarise(group_by(ca_spf, Year), no_trips = length(unique(CS_TripId))))
+
+kable(summarise(group_by(ca_spf, Year, Species), no_trips = length(unique(CS_TripId))))
+
+```
+
+
+### Only aged
+
+That worked really well in HAWG - and overall the number of samples are more or less the same, so sticking with that one
+
+```{r}
+
+kable(summarise(group_by(filter(ca_spf, !(is.na(Age))), Year), no_trips = length(unique(CS_TripId))))
+
+kable(summarise(group_by(filter(ca_spf, !(is.na(Age))), Year, Species), no_trips = length(unique(CS_TripId))))
+
+```
+
+## Output for checking against other sources
+
+Checked figures for her.27.20-24 against figures submitted to HAWG
+
+Number of samples 2017: 150
+
+Number of samples 2018: 132
+
+So quite close ....
+
+Downloaded the WGBFAS report from 2018, so just need to check - at a glance there a way more samples in the report, than in the RDB. Especially Poland seems off.
+
+*This could be due to the fact that not all samples are aged - to be checked*
+
+*Could also check against table 1C*
+
+```{r}
+
+kable(summarise(group_by(filter(ca_spf, !(is.na(Age))), Year, stock), no_trips = length(unique(CS_TripId))))
+
+kable(summarise(group_by(filter(ca_spf, !(is.na(Age))), Year, stock,  SamplingCountry), no_trips = length(unique(CS_TripId))))
+
+kable(summarise(group_by(filter(ca_spf, !(is.na(Age))), Year, stock, area, SamplingCountry), no_trips = length(unique(CS_TripId))))
+
+
+```
+
+## A lot of counts
+
+```{r}
+
+kable(summarise(group_by(filter(ca_spf, !(is.na(Age))), Year, SamplingCountry), no_trips = length(unique(CS_TripId))))
+
+kable(summarise(group_by(filter(ca_spf, !(is.na(Age))), Year, SamplingCountry, FlagCountry), no_trips = length(unique(CS_TripId))))
+
+kable(summarise(group_by(filter(ca_spf, !(is.na(Age))), Year, SamplingCountry, LandingCountry), no_trips = length(unique(CS_TripId))))
+
+kable(summarise(group_by(filter(ca_spf, !(is.na(Age))), Year, SamplingCountry, Species), no_trips = length(unique(CS_TripId))))
+
+kable(summarise(group_by(filter(ca_spf, !(is.na(Age))), Year, SamplingCountry, stock), no_trips = length(unique(CS_TripId))))
+
+kable(summarise(group_by(filter(ca_spf, !(is.na(Age))), Year, LandingCategory), no_trips = length(unique(CS_TripId))))
+
+kable(summarise(group_by(filter(ca_spf, !(is.na(Age))), Year, SamplingCountry, LandingCategory), no_trips = length(unique(CS_TripId))))
+
+kable(summarise(group_by(filter(ca_spf, !(is.na(Age))), Year, SamplingType), no_trips = length(unique(CS_TripId))))
+
+kable(summarise(group_by(filter(ca_spf, !(is.na(Age))), Year, SamplingCountry, SamplingType), no_trips = length(unique(CS_TripId))))
+```
+
+# Number of trips per vessel length
+
+VesselLengthCategory is missing for some of the Danish samples. Denmark don't upload for foreign vessels. Not sure why the Danish ones end up empty - *check*
+
+```{r}
+
+kable(arrange(summarise(group_by(filter(trca, !(is.na(Age))), SamplingCountry, VesselLengthCategory), no_trips = length(unique(CS_TripId))), VesselLengthCategory))
+
+```
+
+# TODO
+
+Number of trips per metier - if possible to join directly
+
+Number of lengths, number of ages
+
+Include some of the plot from HAWG
