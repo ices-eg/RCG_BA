@@ -33,10 +33,23 @@ Only selecting samples with heernig | sprat in area 27.3
 ```{r read_data, include = F, eval = T}
 
 ca_spf <- readRDS(paste(data_dir, "ca_bs_spf.rds", sep = ""))
+hh <- readRDS(paste(data_dir, "hh_bs_spf.rds", sep = ""))
 
 tr <- readRDS(paste(data_dir, "tr_bs_spf.rds", sep = ""))
 
 trca <- right_join(tr, ca_spf)
+
+# With age
+
+ca_age <- filter(ca_spf, !(is.na(Age)))
+
+trip_ids_age <- unique(ca_age$CS_TripId)
+
+tr_age <- filter(tr, CS_TripId %in% trip_ids_age)
+
+hh_age <- filter(hh, CS_TripId %in% trip_ids_age)
+
+trhh_age <- inner_join(tr_age, hh_age)
 
 ```
 
@@ -117,19 +130,54 @@ kable(summarise(group_by(filter(ca_spf, !(is.na(Age))), Year, SamplingType), no_
 kable(summarise(group_by(filter(ca_spf, !(is.na(Age))), Year, SamplingCountry, SamplingType), no_trips = length(unique(CS_TripId))))
 ```
 
-# Number of trips per vessel length
+# Number of trips with age per vessel length - both years
 
 VesselLengthCategory is missing for some of the Danish samples. Denmark don't upload for foreign vessels. Not sure why the Danish ones end up empty - *check*
 
 ```{r}
+kable(arrange(summarise(group_by(tr_age, VesselLengthCategory), no_trips = length(unique(CS_TripId))), VesselLengthCategory))
 
-kable(arrange(summarise(group_by(filter(trca, !(is.na(Age))), SamplingCountry, VesselLengthCategory), no_trips = length(unique(CS_TripId))), VesselLengthCategory))
+kable(arrange(summarise(group_by(tr_age, SamplingCountry, VesselLengthCategory), no_trips = length(unique(CS_TripId))), VesselLengthCategory))
+
+```
+
+
+# Number of trips with age per metier - both years
+
+
+```{r}
+
+kable(arrange(summarise(group_by(trhh_age, FishingActivityCategoryEuropeanLvl6), no_trips = length(unique(CS_TripId))), FishingActivityCategoryEuropeanLvl6))
+
+kable(arrange(summarise(group_by(trhh_age, SamplingCountry, FishingActivityCategoryEuropeanLvl6), no_trips = length(unique(CS_TripId))), FishingActivityCategoryEuropeanLvl6))
+
+```
+
+
+# Number of trips with age per gear - both years
+
+
+```{r}
+
+kable(arrange(summarise(group_by(trhh_age, SamplingCountry, substr(FishingActivityCategoryEuropeanLvl6, 1, 3)), no_trips = length(unique(CS_TripId)))))
+
+```
+
+
+# Number of trips with age per active / passive - both years
+
+
+```{r}
+
+kable(arrange(summarise(group_by(trhh_age, gear_group), no_trips = length(unique(CS_TripId))), gear_group))
+
+kable(arrange(summarise(group_by(trhh_age, SamplingCountry, gear_group, Area), no_trips = length(unique(CS_TripId))), gear_group))
 
 ```
 
 # TODO
 
-Number of trips per metier - if possible to join directly
+Figure out how to join ca with the rest
 
 Number of lengths, number of ages
 
