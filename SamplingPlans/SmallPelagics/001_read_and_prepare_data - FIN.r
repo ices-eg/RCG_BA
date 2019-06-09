@@ -34,7 +34,7 @@ library(foreign)
 	dt_fin$landWt<-as.numeric(dt_fin$landWt)
 	dt_fin$depLoc<-as.character(dt_fin$depLoc)
 	
-# major: issues with metiers [non existing in CL]
+# minor: issues with metiers [non existing in CL]
 	dt_fin$foCatEu6[dt_fin$foCatEu6=="OTM_DEF_>=105_1_12"]<-"OTM_DEF_>=105_1_120"
 	
 #major: all depLoc "" or NA
