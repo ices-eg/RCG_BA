@@ -63,22 +63,7 @@ library(foreign)
 
 	
 	
-# check on unique(vslLenCls) per trip		
-dt_ltu[, length(unique(vslLenCls)), fishTripId][V1>1,]
-# check on unique(vslLenCls) per vessel		
-dt_ltu[, length(unique(vslLenCls)), vslId][V1>1,]
-# check on unique(depDate) per trip		
-dt_ltu[, length(unique(depLoc)), fishTripId][V1>1,]
-# check on unique(depLoc) per trip		
-dt_ltu[, length(unique(depLoc)), fishTripId][V1>1,]
-# check on unique(landDate) per trip		
-dt_ltu[, length(unique(landDate)), fishTripId][V1>1,]
-# check on unique(landLoc) per trip		
-dt_ltu[, length(unique(landLoc)), fishTripId][V1>1,]
-# check on unique(sppCode) per sppName		
-dt_ltu[, length(unique(sppCode)), sppName][V1>1,]
-		
-	
+
 
 
 
