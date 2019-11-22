@@ -36,18 +36,68 @@ tr <- read.csv(paste0(data_dir, "CS TR Trip 2009-2018.csv"), sep = ";", na.strin
 tr <- rename(tr, CS_TripId = ï..CS_TripId)
 tr_1 <- filter(tr, Year %in% c(2017, 2018))
 
+hh <- read.csv(paste0(data_dir, "CS HH Station 2009-2018.csv"), sep = ";", na.strings = "NULL")
+hh <- rename(hh, CS_StationId= ï..CS_StationId)
+hh_1 <- filter(hh, Year %in% c(2017, 2018))
+hh_spf <- filter(
+    hh_1,
+      Area %in% c(
+        "27.3.a",
+        "27.3.a.20",
+        "27.3.a.21",
+        "27.3.b",
+        "27.3.b.23",
+        "27.3.c",
+        "27.3.c.22",
+        "27.3.d",
+        "27.3.d.24",
+        "27.3.d.25",
+        "27.3.d.26",
+        "27.3.d.27",
+        "27.3.d.28",
+        "27.3.d.28.1",
+        "27.3.d.28.2",
+        "27.3.d.29",
+        "27.3.d.30",
+        "27.3.d.31",
+        "27.3.d.32"
+      )
+  )
+
 #hl <- read.csv(paste0(data_dir, "CS HL SMAWL 2009-2018.csv"), sep = ";", na.strings = "NULL")
 
 ca <- read.csv(paste0(data_dir, "CS CA SMAWL 2009-2018.csv"), sep = ";", na.strings = "NULL")
 ca_1 <- filter(ca, Year %in% c(2017, 2018))
-ca_1
+ca_1 <- rename(ca_1, CS_SMAWLId = ï..CS_SMAWLId)
 rm(ca)
 
-ca_spf <- filter(ca_1, Species %in% c("Clupea harengus", "Sprattus sprattus") & Area %in% c("27.3.a", "27.3.a.20", "27.3.a.21", "27.3.b", 
-                                                                                   "27.3.b.23", "27.3.c", "27.3.c.22", "27.3.d",
-                                                                                   "27.3.d.24", "27.3.d.25", "27.3.d.26", "27.3.d.27",
-                                                                                   "27.3.d.28", "27.3.d.28.1", "27.3.d.28.2", "27.3.d.29",
-                                                                                   "27.3.d.30", "27.3.d.31", "27.3.d.32"))
+ca_spf <-
+  filter(
+    ca_1,
+    Species %in% c("Clupea harengus", "Sprattus sprattus") &
+      Area %in% c(
+        "27.3.a",
+        "27.3.a.20",
+        "27.3.a.21",
+        "27.3.b",
+        "27.3.b.23",
+        "27.3.c",
+        "27.3.c.22",
+        "27.3.d",
+        "27.3.d.24",
+        "27.3.d.25",
+        "27.3.d.26",
+        "27.3.d.27",
+        "27.3.d.28",
+        "27.3.d.28.1",
+        "27.3.d.28.2",
+        "27.3.d.29",
+        "27.3.d.30",
+        "27.3.d.31",
+        "27.3.d.32"
+      )
+  )
+
 ca_spf$Area <- as.character(ca_spf$Area)
 
 ca_spf <- mutate(ca_spf, Area = ifelse(!(FlagCountry %in% c("LVA", "EST")) & Area == "27.3.d.28", "27.3.d.28.2", Area))
@@ -60,7 +110,7 @@ ca_spf <- mutate(ca_spf, Area = ifelse(Species == "Sprattus sprattus" &  Area %i
 
 # Adding stock
 
-```{r add stock, include = T}
+```{r add_stock, include = T}
 
 unique(ca_spf$Area)
 
@@ -76,6 +126,11 @@ ca_spf <- left_join(ca_spf, FAO)
 source("Q:/mynd/kibi/functions/GetStock_v1_1.R")
 
 ca_spf <- GetStock(ca_spf, rect = F)
+
+no_stock <- summarise(group_by(filter(ca_spf, stock == "no.defined.stock" & Species %in% c("Clupea harengus", "Sprattus sprattus")), Species, Area, Year, FlagCountry), no_trips = length(unique(CS_TripId)))
+
+ca_spf <- mutate(ca_spf, stock = ifelse(Stock == "her-gor", "her.27.28", 
+                                        ifelse(Stock == "her-2529+32(-GOR)", "her.27.25-2932", stock)))
 
 no_stock <- summarise(group_by(filter(ca_spf, stock == "no.defined.stock" & Species %in% c("Clupea harengus", "Sprattus sprattus")), Species, Area, Year, FlagCountry), no_trips = length(unique(CS_TripId)))
 
@@ -108,6 +163,11 @@ kable(distinct(filter(ca_spf, !(is.na(Age))), LandingCountry, FlagCountry, Proje
 ```{r, include = F}
 
 ca_spf <- mutate(ca_spf, SamplingCountry = ifelse(Project == "DCF-OF", "DEU",
+                                                  ifelse(Project == "LitDCP", "LTU",
+                                                         ifelse(Project == "LatDCP", "LVA",
+                                                                ifelse(Project == "npzdr", "POL", substr(Project, 1, 3))))))
+
+tr_1 <- mutate(tr_1, SamplingCountry = ifelse(Project == "DCF-OF", "DEU",
                                                   ifelse(Project == "LitDCP", "LTU",
                                                          ifelse(Project == "LatDCP", "LVA",
                                                                 ifelse(Project == "npzdr", "POL", substr(Project, 1, 3))))))
@@ -149,10 +209,35 @@ kable(arrange(distinct(tr_2, VesselLength, VesselLengthCategory), VesselLength))
 
 ```
 
+# Adding gear group
+
+All HH from the Baltic data are present - not only SPF samples
+
+```{r}
+
+kable(distinct(hh_1, substr(FishingActivityCategoryEuropeanLvl6, 1, 3)))
+
+```
+
+```{r, include = F}
+
+hh_1 <- mutate(hh_1, gear_group = ifelse(substr(FishingActivityCategoryEuropeanLvl6, 1, 3) %in% c("GTR","GNS","FPO","FYK","MIS","FPN","LLS","LHP","LHM","LLD","GND") | is.na(FishingActivityCategoryEuropeanLvl6), "passive", "active"))
+
+```
+
+
+```{r}
+kable(distinct(hh_1, substr(FishingActivityCategoryEuropeanLvl6, 1, 3), gear_group))
+```
+
+
+# Output
 
 ```{r save_data, include = F, eval = T}
 
 saveRDS(ca_spf, paste(data_dir, "ca_bs_spf.rds", sep = ""))
 saveRDS(tr_2, paste(data_dir, "tr_bs_spf.rds", sep = ""))
+saveRDS(hh_1, paste(data_dir, "hh_bs_spf.rds", sep = ""))
+
 
 ```
