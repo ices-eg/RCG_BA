@@ -175,6 +175,9 @@ kable(arrange(summarise(group_by(trhh_age, SamplingCountry, gear_group, Area), n
 
 ```
 
+
+
+
 # TODO
 
 Figure out how to join ca with the rest

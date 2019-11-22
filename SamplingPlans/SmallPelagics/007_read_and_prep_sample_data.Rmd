@@ -129,6 +129,11 @@ ca_spf <- GetStock(ca_spf, rect = F)
 
 no_stock <- summarise(group_by(filter(ca_spf, stock == "no.defined.stock" & Species %in% c("Clupea harengus", "Sprattus sprattus")), Species, Area, Year, FlagCountry), no_trips = length(unique(CS_TripId)))
 
+ca_spf <- mutate(ca_spf, stock = ifelse(Stock == "her-gor", "her.27.28", 
+                                        ifelse(Stock == "her-2529+32(-GOR)", "her.27.25-2932", stock)))
+
+no_stock <- summarise(group_by(filter(ca_spf, stock == "no.defined.stock" & Species %in% c("Clupea harengus", "Sprattus sprattus")), Species, Area, Year, FlagCountry), no_trips = length(unique(CS_TripId)))
+
 ```
 
 ## Missing stock

@@ -1,0 +1,147 @@
+---
+title: "003_landing_category"
+author: "Kirsten Birch Håkansson, DTU Aqua"
+date: "22/05/2019"
+output: pdf_document
+---
+
+# A closer look at landing category
+
+## Overall conclusion
+
+This is slightly messy and it is not straight forward to assign a landing category, when you don't know the landing locations and other countries fisheries.
+
+So, what will we use landings category for?
+
+1.   Sampling protocols for IND and HUC may differ. Wouldn't the differnce be between factories (pumping / conveying belt) and auction (sorted boxes)? This could be solved by describing the most important location, see 004_locations pdf and spreadsheet
+2.   Could be relevant for splitting OTM_SPF_16_104_0_0
+2.   It has been / are being use for assigning landings of WBSS to fleets in the stock assessment model. 
+3.   Other?
+
+
+```{r setup, include=FALSE}
+library(data.table)
+library(fishPiCodes)	
+library(foreign) 
+library(dplyr)
+library(knitr)
+library(lubridate)
+library(ggplot2)
+
+data_dir <- "Q:/dfad/users/kibi/data/RCG/from_share_point/"
+
+knitr::opts_chunk$set(
+  echo = F,
+  warning = F,
+  message = F,
+  error = F,
+  comment = F)
+
+#setwd("SamplingPlans/SmallPelagics")
+```
+
+```{r load_data, include = F}
+
+dat <- readRDS(paste(data_dir, "df_bs_spf.rds", sep = ""))
+
+dt_spf <- filter(dat, sppName %in% c("Sprattus sprattus", "Clupea harengus"))
+```
+
+
+## All countries
+
+```{r landCat}
+kable(summarise(group_by(dt_spf, vslFlgCtry, sppName, landCat), tons = sum(landWt/1000, na.rm = T)), caption = "Landing categories")
+```
+
+## DEU
+
+Recode "HCN" and "UKN" to HUC - *ok?*
+
+According to Sven: "UKN" (unknown), i.e. private use and private marketing
+
+## DNK
+
+a little bit strange with Sprat for HUC - *to check*
+
+## EST
+
+Some landings without landing category. These are not known, so we agreeded to distribute these landings, *but how?*
+
+A closer look 
+
+- All landings with missing landCat are from big vessels, all fishing with OTM_SPF_16_104_0_0
+- All landings abroad have missing landCat - all landings in Esonia have info about landCat
+- What are normally landed at these location? - not a clear pattern
+
+```{r landCat_est}
+
+kable(summarise(group_by(filter(dt_spf, vslFlgCtry == "EST"), vslFlgCtry, sppName, vslLenCls, foCatEu6, landCat), tons = sum(landWt/1000, na.rm = T)), caption = "Landing categories")
+
+kable(summarise(group_by(filter(dt_spf, vslFlgCtry == "EST"), vslFlgCtry, sppName, substr(landLoc, 1, 2), landCat), tons = sum(landWt/1000, na.rm = T)), caption = "Landing categories")
+
+kable(summarise(group_by(filter(dt_spf, vslFlgCtry == "EST"), vslFlgCtry, sppName, area, landCat), tons = sum(landWt/1000, na.rm = T)), caption = "Landing categories")
+
+```
+
+```{r, include = F}
+
+est <- filter(dt_spf, vslFlgCtry == "EST" & landCat == "")
+
+est_loc_abroad <- unique(est$landLoc)
+
+est_loc_abroad_all <- filter(dt_spf, landLoc %in% est_loc_abroad)
+
+```
+
+
+
+```{r landCat_est_2}
+
+kable(summarise(group_by(est_loc_abroad_all, landLoc, vslFlgCtry, sppName, landCat), tons = sum(landWt/1000, na.rm = T)), caption = "Landing categories")
+
+```
+
+## FIN
+
+OK
+
+## LTU
+
+OK
+
+## LVA
+
+From Maris "All lines in Latvian data is landings for Human consumption. If some landings are sold for industrial purposes it is not reflected in the logbooks. Latvia in EUROSTAT all landings record as for Human consumption"
+
+According to the Danish sales slips all Lativian landings into DKNEX are "IND"
+
+```{r}
+
+kable(summarise(group_by(filter(dt_spf, vslFlgCtry == "LVA"), vslFlgCtry, sppName, landLoc, landCat), tons = sum(landWt/1000, na.rm = T)), caption = "Landing categories")
+
+```
+
+
+## POL
+
+Everything set to "HUC"
+
+According to the Danish sales slips 99.9% of the Polish landings into DKNEX are "IND"
+
+
+```{r}
+
+kable(summarise(group_by(filter(dt_spf, vslFlgCtry == "POL"), vslFlgCtry, sppName, vslLenCls, foCatEu6, landCat), tons = sum(landWt/1000, na.rm = T)), caption = "Landing categories")
+
+kable(summarise(group_by(filter(dt_spf, vslFlgCtry == "POL"), vslFlgCtry, sppName, substr(landLoc, 1, 2), landCat), tons = sum(landWt/1000, na.rm = T)), caption = "Landing categories")
+
+kable(summarise(group_by(filter(dt_spf, vslFlgCtry == "POL"), vslFlgCtry, sppName, landLoc, landCat), tons = sum(landWt/1000, na.rm = T)), caption = "Landing categories")
+
+kable(summarise(group_by(filter(dt_spf, vslFlgCtry == "POL"), vslFlgCtry, sppName, area, landCat), tons = sum(landWt/1000, na.rm = T)), caption = "Landing categories")
+
+```
+
+## SWE
+
+Sweden will have a look at this
