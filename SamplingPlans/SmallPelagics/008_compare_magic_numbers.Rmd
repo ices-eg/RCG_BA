@@ -1,0 +1,165 @@
+---
+title: "008_compare_magic_numbers"
+author: "Kirsten Birch Håkansson, DTU Aqua"
+date: "06/06/2019"
+output: pdf_document
+---
+
+# Aim
+
+See if the sample data in the RDB can be use for simulating biological stuff
+
+Comparing figures from the RDB with the ones in the AWG reports (HAWG and WGBFAS, 2018)
+
+
+```{r setup, include=FALSE}
+
+library(fishPiCodes)	
+library(dplyr)
+library(knitr)
+library(lubridate)
+library(ggplot2)
+library(readxl)
+
+data_dir <- "Q:/dfad/users/kibi/data/RCG/from_share_point/"
+
+knitr::opts_chunk$set(
+  echo = F,
+  warning = F,
+  message = F,
+  error = F,
+  comment = F)
+
+#setwd("SamplingPlans/SmallPelagics")
+```
+
+# Data
+
+Only selecting samples with herring | sprat in area 27.3
+
+```{r read_data, include = F, eval = T}
+
+ca_spf <- readRDS(paste(data_dir, "ca_bs_spf.rds", sep = ""))
+hh <- readRDS(paste(data_dir, "hh_bs_spf.rds", sep = ""))
+
+tr <- readRDS(paste(data_dir, "tr_bs_spf.rds", sep = ""))
+
+trca <- right_join(tr, ca_spf)
+
+# With age
+
+ca_age <- filter(ca_spf, !(is.na(Age)))
+
+trip_ids_age <- unique(ca_age$CS_TripId)
+
+tr_age <- filter(tr, CS_TripId %in% trip_ids_age)
+
+hh_age <- filter(hh, CS_TripId %in% trip_ids_age)
+
+trhh_age <- inner_join(tr_age, hh_age)
+
+# AWG figures
+
+awg <- read_xlsx("Q:/mynd/RCM/RCG_BA/SamplingPlans/SmallPelagics/ref/awg_figures_2017.xlsx", sheet = 1)
+
+# Correct countries
+
+awg <- mutate(awg, SamplingCountry = ifelse(ctry == "Denmark", "DNK",
+                                      ifelse(ctry == "Germany", "DEU",
+                                       ifelse(ctry == "Estonia", "EST",
+                                        ifelse(ctry == "Finland", "FIN",
+                                         ifelse(ctry == "Latvia", "LVA",
+                                          ifelse(ctry == "Lithuania", "LTU",
+                                           ifelse(ctry == "Poland", "POL",
+                                            ifelse(ctry == "Sweden", "SWE",
+                                             ifelse(ctry == "Russia", "RUS",
+                                              ifelse(ctry == "Faroe Islands", "FRO",
+                                                     ifelse(ctry == "Norway", "NOR", NA))))))))))),
+              samples = ifelse(is.na(samples), samples_ages, samples))
+
+awg <- filter(awg, !(SamplingCountry %in% c("RUS","FRO","NOR")))
+
+# AR figures
+
+
+```
+
+
+# Number samples - RDB vs. AWG
+
+Diff mainly driven by Poland and Finland. 
+
+THe figures in the Polish AR seems closer to the ones in the RDB.
+
+```{r, include = F}
+
+no_samples_rdb <- summarise(group_by(filter(ca_age, Year == 2017), Year, stock, SamplingCountry), no_samples_rdb = length(unique(CS_TripId)))
+
+no_samples_awg <- summarise(group_by(awg, stock, SamplingCountry), no_samples_awg = sum(samples, na.rm = T))
+
+comp_samples_rdb_awg <- mutate(full_join(no_samples_rdb, no_samples_awg), diff_samples = no_samples_awg - no_samples_rdb)
+```
+
+```{r}
+kable(arrange(comp_samples_rdb_awg, SamplingCountry, stock))
+```
+
+
+# Number ages - RDB vs. AWG
+
+Diff mainly driven by Latvia and Poland
+
+```{r, include = F}
+
+no_aged_rdb <- summarise(group_by(filter(ca_age, Year == 2017), Year, stock, SamplingCountry), no_aged_rdb = length(unique(CS_SMAWLId)))
+
+no_aged_awg <- summarise(group_by(awg, stock, SamplingCountry), no_aged_awg = sum(ages, na.rm = T))
+
+comp_age_rdb_awg <- mutate(full_join(no_aged_rdb, no_aged_awg), diff_aged = no_aged_awg-no_aged_rdb)
+```
+
+```{r}
+kable(arrange(comp_age_rdb_awg, SamplingCountry, stock))
+```
+
+```{r}
+combined <- arrange(full_join(comp_samples_rdb_awg, comp_age_rdb_awg), stock)
+```
+
+
+# Without country
+
+# Number samples - RDB vs. AWG
+
+```{r, include = F}
+
+no_samples_rdb <- summarise(group_by(filter(ca_age, Year == 2017), Year, stock), no_samples_rdb = length(unique(CS_TripId)))
+
+no_samples_awg <- summarise(group_by(awg, stock), no_samples_awg = sum(samples, na.rm = T))
+
+comp_samples_rdb_awg <- mutate(full_join(no_samples_rdb, no_samples_awg), diff_samples = no_samples_awg - no_samples_rdb)
+```
+
+```{r}
+kable(arrange(comp_samples_rdb_awg, stock))
+```
+
+
+# Number ages - RDB vs. AWG
+
+```{r, include = F}
+
+no_aged_rdb <- summarise(group_by(filter(ca_age, Year == 2017), Year, stock), no_aged_rdb = length(unique(CS_SMAWLId)))
+
+no_aged_awg <- summarise(group_by(awg, stock), no_aged_awg = sum(ages, na.rm = T))
+
+comp_age_rdb_awg <- mutate(full_join(no_aged_rdb, no_aged_awg), diff_aged = no_aged_awg-no_aged_rdb)
+```
+
+```{r}
+kable(arrange(comp_age_rdb_awg, stock))
+```
+
+```{r}
+combined <- arrange(full_join(comp_samples_rdb_awg, comp_age_rdb_awg), stock)
+```
