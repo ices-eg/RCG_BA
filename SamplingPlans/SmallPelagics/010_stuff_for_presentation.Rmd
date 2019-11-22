@@ -1,0 +1,103 @@
+---
+title: "002_stuff_from_presentation"
+author: "Kirsten Birch Håkansson, DTU Aqua"
+date: "10/05/2019"
+output: pdf_document
+---
+
+# Trips targeting
+
+Stolen the check and re-coding code from Nuno
+
+```{r setup, include=FALSE}
+library(data.table)
+library(fishPiCodes)	
+library(foreign) 
+library(dplyr)
+library(knitr)
+library(lubridate)
+library(ggplot2)
+
+data_dir <- "Q:/dfad/users/kibi/data/RCG/from_share_point/"
+output_dir <- "Q:/mynd/RCM/RCG_BA/SamplingPlans/SmallPelagics/output/"
+
+knitr::opts_chunk$set(
+  echo = F,
+  warning = F,
+  message = F,
+  error = F,
+  comment = F,
+  fig.path = output_dir,
+  fig.height = 5,
+  fig.width = 10,
+  dpi = 900,
+  dev = 'png')
+
+#setwd("SamplingPlans/SmallPelagics")
+```
+
+```{r}
+
+load(paste(data_dir, "data_compiled.Rdata", sep = ""))
+dt <- dt1
+
+```
+
+
+# Analyses
+## Target population
+
+```{r target}
+
+dt_sum <- filter(summarise(group_by(dt, fishTripId, sppName), ton = sum(landWt/1000, na.rm = T)), ton > 0)
+
+dt_sum_1 <- mutate(dt_sum, spp = ifelse(sppName %in% c("Sprattus sprattus", "Clupea harengus"), "HER+SPR", "other"))
+
+dt_sum_2 <- filter(summarise(group_by(dt_sum_1, fishTripId, spp), ton = sum(ton, na.rm = T)), ton > 0)
+
+dt_tot <- summarise(group_by(dt_sum_2, fishTripId), ton_tot = sum(ton, na.rm = T))
+
+dt_pct <- mutate(left_join(dt_sum_2, dt_tot), pct_her_spr_trip = (ton/ton_tot)*100)
+
+trips_her_spr <- mutate(arrange(filter(dt_pct, spp == "HER+SPR"), pct_her_spr_trip, ton), cum = cumsum(ton))
+
+
+```
+
+*When are trip targeting sprat or herring?*
+
+Total number of trips (all species); `r length(unique(dt_sum$fishTripId))`
+
+Total landings of herring and sprat (tons): `r as.character(round(sum(trips_her_spr$ton), digits = 0))`
+
+Total number of trips (more than 80 pct of sprat or herring); `r length(unique(dt_pct$fishTripId[dt_pct$pct_her_spr_trip > 80]))`
+
+Total landings of herring and sprat (more than 80 pct of sprat or herring): `r as.character(round(sum(trips_her_spr$ton[trips_her_spr$pct_her_spr_trip > 80]), digits = 0))`
+
+Total number of trips (more than 90 pct of sprat or herring); `r length(unique(dt_pct$fishTripId[dt_pct$pct_her_spr_trip > 90]))`
+
+Total landings of herring and sprat (more than 90 pct of sprat or herring): `r as.character(round(sum(trips_her_spr$ton[trips_her_spr$pct_her_spr_trip > 90]), digits = 0))`
+
+
+```{r, fig.cap = "xx"}
+
+ggplot(trips_her_spr, aes(x = pct_her_spr_trip)) +
+  geom_histogram(binwidth = 1, fill = "#177778") + 
+  geom_vline(xintercept = 94.5, color = "red") + 
+  geom_vline(xintercept = 4.5, color = "blue") +
+  labs(title = "Number of trips per pct of herring and sprat, 2017 & 2018", subtitle = "Blue line: 5 pct. of herring or sprat (excluded in data call). Red line: 95 pct. of herring or sprat (suggested target in project).", 
+       y = "Number of trips", x = "Pct. herring and sprat on a trip")
+
+```
+
+```{r, fig.cap = "xx"}
+
+ggplot(trips_her_spr, aes(x = round(pct_her_spr_trip, digits = 0), y = ton)) +
+  geom_bar(stat = "identity", width = 1, fill = "#177778") + 
+  geom_line(aes(x = pct_her_spr_trip, y = cumsum(ton)), col = "red") +
+  labs(title = "Tons per pct of herring and sprat, 2017 & 2018", subtitle = "Red line: accumulated landings", 
+       y = "Tons", x = "Pct. herring and sprat on a trip")
+
+```
+
+
