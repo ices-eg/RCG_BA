@@ -1,1 +1,1 @@
-# SamplingPlans folder (file used to make directory visible)
+# Work of Small Pelagics Regional Sampling Case-Studies of RCG BA
