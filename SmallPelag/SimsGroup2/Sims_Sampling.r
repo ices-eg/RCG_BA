@@ -247,6 +247,8 @@
 	# comparing with minimum goals
 	# ===========================
 					
+		# NOTE: file "MinSampleTargets.xlsx" found in sharepoint			
+					
 		# prepares minimum goals
 			spr<-read.xlsx ("MinSampleTargets.xlsx", sheetName="spr")
 			colnames(spr) <- c("area",1,2,3,4)
