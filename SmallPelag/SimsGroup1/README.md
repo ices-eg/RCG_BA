@@ -1,2 +1,2 @@
-work of sim subgroup 1
+Work of sim subgroup 1
 
