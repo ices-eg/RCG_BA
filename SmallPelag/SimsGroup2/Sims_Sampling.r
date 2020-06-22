@@ -7,6 +7,7 @@
     
 	# read packages [not sure all are used but...]
 	library(foreign) 
+    library(reshape2)
     library(data.table)
 	library(xlsx) 
 	# library(readxl) # use instead of library(xlsx) if you run into java issues
@@ -71,9 +72,9 @@
                         out<-out[!is.na(out$week),]    
                     }
 					
-            # pulling original data 
+            # pulling original data [choose one of the alternatives below]
                 
-				# ask only for the dominant of species in a target list
+				# alternative 1: ask only for the dominant of species in a target list
                     target_spp2 <- c("Sprattus sprattus", "Clupea harengus")
                     agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','haulId','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','vslId','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
                     dt0agg<-dt0;dt0agg<-dt0agg[, list(landWt=sum(landWt)),agg_columns]                    
@@ -97,13 +98,14 @@
 								length(unique(dt_sample$fishTripId))
 
 								
-				# Ask for all species in the list if they are present
+				# alternative 2: Ask for all species in the list if they are present
 					target_spp2 <- c("Sprattus sprattus", "Clupea harengus")
                     agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','haulId','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','vslId','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
                     dt0agg<-dt0;dt0agg<-dt0agg[, list(landWt=sum(landWt)),agg_columns]
 						dt_sample <- dt0agg[fishTripId %in% out$fishTripId & sppName %in% target_spp2, ]
 
-				# Ask for all species in the list if they are present in a significant proportion across target_spp2 (e.g., 0.3)
+				# alternative 3: Ask for all species in the list if they are present in a significant proportion across target_spp2 (e.g., 0.3)
+					# choose the significant proportion (means: spp will only be found in sample if %weight > sign_prop)
 					sign_prop<-0.3
 					target_spp2 <- c("Sprattus sprattus", "Clupea harengus")
                     agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','haulId','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','vslId','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
@@ -111,15 +113,17 @@
 						dt_sample <- dt0agg[fishTripId %in% out$fishTripId & sppName %in% target_spp2, ]
 							# trimming down when rare
 								dim(dt_sample)
-								aux <- dt_sample[,list(prop_her = landWt[sppName=="Clupea harengus"]/sum(landWt), prop_spr = landWt[sppName=="Sprattus sprattus"]/sum(landWt)), list(haulId)]
+								aux <- merge(dt_sample[,list(prop_her = landWt[sppName=="Clupea harengus"]/sum(landWt)), list(haulId)],dt_sample[,list(prop_spr = landWt[sppName=="Sprattus sprattus"]/sum(landWt)), list(haulId)], by="haulId",all=T)
 								aux$prop_her[is.na(aux$prop_her)]<-0; aux$prop_spr[is.na(aux$prop_spr)]<-0
 								dt_sample <- dt_sample[paste(dt_sample$haulId,dt_sample$sppName) %in% paste(aux$haulId, "Clupea harengus")[aux$prop_her>sign_prop] | 
 														paste(dt_sample$haulId,dt_sample$sppName) %in% paste(aux$haulId, "Sprattus sprattus")[aux$prop_spr>sign_prop],]
 								dim(dt_sample)
 				
-			   # ATT: ask for random species in the target list [ATT: check if data.table implementation is well done]
+			
+			   # alternative 4: ask for random species in the target list 
+				#ATT: check if data.table implementation is well done
                     target_spp2 <- c("Sprattus sprattus", "Clupea harengus")
-                    agg_columns < c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','haulId','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','vslId','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
+                    agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','haulId','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','vslId','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
                     dt0agg <- dt0; dt0agg<-dt0agg[, list(landWt=sum(landWt)),agg_columns]
                     #selected_sample <- dt0agg[haulId %in% out$haulId, list(sppName=sample(target_spp2,1)), list(haulId)]
 					dt_sample <- dt0agg[fishTripId %in% out$fishTripId & sppName %in% target_spp2, ]
@@ -129,6 +133,7 @@
 									})					
 					dt_sample<-rbindlist(ls2)
 					
+				# alternative 5?: feel free to suggest	
 
 
 			#should yield TRUE
@@ -250,21 +255,21 @@
 					
 		# NOTE: file "MinSampleTargets.xlsx" found in sharepoint			
 			spr<-read.xlsx ("MinSampleTargets.xlsx", sheetName="spr")
-			spr<-as.data.frame(read_xlsx("MinSampleTargets.xlsx", sheet="spr"))			
-			
+			her<-read.xlsx ("MinSampleTargets.xlsx", sheetName="her")
+						
 			## alternative for library(readxl): use if you run into java issues when loading library(xlsx)
-			# her<-read.xlsx ("MinSampleTargets.xlsx", sheetName="her")
+			# spr<-as.data.frame(read_xlsx("MinSampleTargets.xlsx", sheet="spr"))			
 			# spr<-as.data.frame(read_xlsx("MinSampleTargets.xlsx", sheet="her"))			
 
 				
-		# prepares minimum goals
+		# prepares minimum goals 
 			colnames(spr) <- c("area",1,2,3,4)
 			spr$sppName <- "Sprattus sprattus"
-			spr<-melt(spr)
+			spr<-reshape2::melt(spr)
 		
 			colnames(her) <- c("area",1,2,3,4)
 			her$sppName <- "Clupea harengus"
-			her<-melt(her)				
+			her<-reshape2::melt(her)				
 		
 			dt_goals<-data.table(rbind(spr, her))
 			colnames(dt_goals)[3:4]<-c("landQuarter", "nSamples")
@@ -273,13 +278,17 @@
 		
 			# subsets to target region
 			dt_goals2 <- dt_goals[dt_goals$area %in% dt_sample2$area,]
-		
+			
 		# compares
 			goals_samples2 <- tapply(dt_goals2$nSamples, list(dt_goals2$area, dt_goals2$landQuarter, dt_goals2$sppName), sum)
 			goals_fish2 <- goals_samples2*50
 				apply(goals_samples2, 3, sum)
 				apply(goals_fish2, 3, sum)
 		
+			# ATT: generates missing quarters
+				# ATT: testData only includes Q1 so results for other quarters will be miningless. I leave them in to reduce code editing when real Q1 to Q4 data is used as input
+				if(any(c(1:4)%in% dt_sample_subsampled2$landQuarter))dt_sample_subsampled2$landQuarter<-factor(dt_sample_subsampled2$landQuarter, levels=1:4)
+			
 			res_samples2 <-  table(dt_sample_subsampled2$area, dt_sample_subsampled2$landQuarter, dt_sample_subsampled2$sppName)
 			res_fish2 <- tapply(dt_sample_subsampled2$nInBoxSampled, list(dt_sample_subsampled2$area, dt_sample_subsampled2$landQuarter, dt_sample_subsampled2$sppName), sum)
 			res_fish2[is.na(res_fish2)]<-0
@@ -287,7 +296,12 @@
 				apply(res_fish2, 3, sum)
 				
 			# difference
-			res_samples2-goals_samples2
+			res_samples2-goals_samples2 
 			res_samples2[res_samples2-goals_samples2<0]
 			goals_samples2[res_samples2-goals_samples2<0]
-				
+				# restriction to meaningful results [use with testData only]
+					(res_samples2-goals_samples2)[,1,] 
+					res_samples2[res_samples2[,1,]-goals_samples2[,1,]<0]
+					goals_samples2[res_samples2[,1,]-goals_samples2[,1,]<0]					
+		
+			
