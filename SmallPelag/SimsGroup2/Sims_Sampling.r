@@ -259,7 +259,7 @@
 						
 			## alternative for library(readxl): use if you run into java issues when loading library(xlsx)
 			# spr<-as.data.frame(read_xlsx("MinSampleTargets.xlsx", sheet="spr"))			
-			# spr<-as.data.frame(read_xlsx("MinSampleTargets.xlsx", sheet="her"))			
+			# her<-as.data.frame(read_xlsx("MinSampleTargets.xlsx", sheet="her"))			
 
 				
 		# prepares minimum goals 
