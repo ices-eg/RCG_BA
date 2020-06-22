@@ -25,6 +25,35 @@
 	load(filename)
 
 	ls()
+	
+	# wishlist
+		# fishdayId vs. haulId
+		# POL: add possibility of different vessel numbers per week
+		# figure with 3 maps
+			# samples obtained
+			# fishing of the vessel list
+			# fishing of the fleet
+		# add simulation loop, outputs, 95% confidence intervals
+		# DNK: add possibility of taking 1 sample from all trips of the vessel list
+		# check if possibility of % proportion in sample, and verything processed.
+
+	# other
+		# Code produced should
+		# allow simulation of next trip / next trip*next week, all trips in  week and so on
+		# allow simulation last haul vs 1st haul, all hauls in trip
+		# allow simulation of refusal rates (at vessel level, if possible trip level)
+		# visualize the impacts of sampling alternatives in terms of 
+		# workload: number of samples obtained / number of fish
+		# coverage:
+		# species (sprat vs herring)
+		# long vs short trips
+		# vessel size
+		# subdivisions
+		# rectangles
+		# cooperative vs non-cooperative vessels
+		# vessel in vessel-list vs non-vessel list
+		# allow future integration between countries (to look at regional outputs)
+
 
 
     # ======================
@@ -73,7 +102,8 @@
                     }
 					
             # pulling original data [choose one of the alternatives below]
-                
+             
+
 				# alternative 1: ask only for the dominant of species in a target list
                     target_spp2 <- c("Sprattus sprattus", "Clupea harengus")
                     agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','haulId','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','vslId','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
