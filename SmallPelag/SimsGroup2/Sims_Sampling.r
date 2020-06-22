@@ -8,7 +8,8 @@
 	# read packages [not sure all are used but...]
 	library(foreign) 
     library(data.table)
-	library(xlsx)
+	library(xlsx) 
+	# library(readxl) # use instead of library(xlsx) if you run into java issues
 
 	# load population data [found in sharepoint]
 		# data call format extended with haulId [can also use fishingDateId]
@@ -248,14 +249,19 @@
 	# ===========================
 					
 		# NOTE: file "MinSampleTargets.xlsx" found in sharepoint			
-					
-		# prepares minimum goals
 			spr<-read.xlsx ("MinSampleTargets.xlsx", sheetName="spr")
+			spr<-as.data.frame(read_xlsx("MinSampleTargets.xlsx", sheet="spr"))			
+			
+			## alternative for library(readxl): use if you run into java issues when loading library(xlsx)
+			# her<-read.xlsx ("MinSampleTargets.xlsx", sheetName="her")
+			# spr<-as.data.frame(read_xlsx("MinSampleTargets.xlsx", sheet="her"))			
+
+				
+		# prepares minimum goals
 			colnames(spr) <- c("area",1,2,3,4)
 			spr$sppName <- "Sprattus sprattus"
 			spr<-melt(spr)
 		
-			her<-read.xlsx ("MinSampleTargets.xlsx", sheetName="her")
 			colnames(her) <- c("area",1,2,3,4)
 			her$sppName <- "Clupea harengus"
 			her<-melt(her)				
