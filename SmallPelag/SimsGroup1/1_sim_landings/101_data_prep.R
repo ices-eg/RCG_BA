@@ -18,13 +18,18 @@
 # Steps in the script
 #   1. Setting up - libraries, folders and loading functions
 #   2. Get input data
-#   3. Run the deriveVar to added needed stuff
-#   4. Recode stock, since some of 
+#   3. Some corrections, so e.g. the stock codes are correct
+#   4. Run the deriveVar to added needed stuff
+#   5. Checks
+#   6. Further adaptions. Based on the stuff from https://github.com/ices-tools-dev/FishPi2/blob/master/WP3/Code%20to%20create%20demNS%20for%202015%20and%202016%20-%2015.5.2019.r
+
 
 # TODO
 #   1. compare my combined data set with Nuno's
 
 # 1. Setting up ----
+
+library(dplyr)
 
 path_input_data <- "Q:/dfad/users/kibi/data/RCG/from_share_point/"
 path_output_data <- "Q:/dfad/users/kibi/data/RCG/from_share_point/"
@@ -35,9 +40,37 @@ source("SmallPelag/SimsGroup1/1_sim_landings/deriveVarV5.R")
 
 load(paste0(path_input_data, "data_compiled.Rdata"))
 
-# 3. Run deriveVar ----
+# 3. Corrections ----
+
+## Correction of area 28 - based on 
+
+dt1 <- mutate(dt1, area = ifelse(!(vslFlgCtry %in% c("LVA", "EST")) & area == "27.3.d.28", "27.3.d.28.2", area))
+
+dt1 <- mutate(dt1, area = ifelse(sppName == "Sprattus sprattus" &  area %in% c("27.3.d.28.1", "27.3.d.28.2"), "27.3.d.28", area))
+
+# 4. Run deriveVar ----
 
 dat <- deriveVar(dt1)
 names(dat)
 
-# 4. recode stocks -----
+# 5. Checks ----
+
+## Stock - looks ok
+
+no_stock <- summarise(group_by(filter(dat, stock == "no.defined.stock" & sppName %in% c("Clupea harengus", "Sprattus sprattus")), 
+                               sppName, area, year, vslFlgCtry), landWt_ton = sum(landWt/1000))
+
+distinct(dat, vslFlgCtry, landCtry)
+
+# 6. Further adaptions
+
+xx <- dat
+
+xx$landCtryFlag <-xx$landCtry
+
+## LandType is use to evaluating sampling of foreign vessels - a lot of countries do not sample these in the harbours
+
+xx$landType <- "own"
+xx$landType[which(xx$landCtryFlag != xx$vslFlgCtry)] <- "foreign"
+xx$landTonnage <-xx$landWt/1000
+xx$fleetType <-paste(xx$vslFlgCtry,xx$vslLenCls,sep="_")
