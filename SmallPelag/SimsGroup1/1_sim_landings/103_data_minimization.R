@@ -9,7 +9,7 @@
 #   1. Setting up - libraries, folders and loading functions
 #   2. Get input data
 #   3. Minimizing
-#   7. Output data
+#   4. Output data
 
 
 # 1. Setting up ----
