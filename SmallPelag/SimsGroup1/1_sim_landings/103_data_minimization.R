@@ -33,13 +33,13 @@ if (version == "test") {
   # This is a modification of  https://github.com/ices-tools-dev/FishPi2/blob/master/WP3/Code%20to%20create%20demNS%20for%202015%20and%202016%20-%2015.5.2019.r
   
   fishOfInterest <- c("SPR", "HER")
-  ctryOfInterest <-c("DEU", "DNK", "EST", "FIN", "LTU", "LVA", "POL", "SWE")
+  ctryOfInterest <- c("DEU", "DNK", "EST", "FIN", "LTU", "LVA", "POL", "SWE")
   #unique(dat$area)
   #widerNSea <- c("27.7.d" , "27.4.a" ,"27.4.b", "27.4.c" , "27.3.a.20" , "27.3.a.21", "27.3.a")
   vars <-  c("vslFlgCtry","vslLenCls","fishTripId","landLoc","rect","area","foCatEu6","sppCode","sppName",   
              "landWt","landDay","landDate","sppFAO","ISSCAAP","landCtry","gear","stock")
   
-  sppTypeIndex <-which(dat$tripMainSppType=="pelagic")
+  sppTypeIndex <- which(dat$tripMainSppType == "pelagic")
   dat_1 <- dat[sppTypeIndex,]
   
   
