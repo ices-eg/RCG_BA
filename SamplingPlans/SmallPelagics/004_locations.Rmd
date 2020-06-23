@@ -1,17 +1,13 @@
 ---
 title: "004_locations"
 author: "Kirsten Birch Håkansson, DTU Aqua"
-date: "23/05/2019"
+date: \today
 output: pdf_document
 ---
 
-# Describing the most important location
+# Finding the locations - both fleets (active & passive)
 
-## Finding the locations
-
-Most important landing location per stock - *where to set the treshold for that?*
-
-OBS - I have assinged stock and checked the figures againt the figures in the advice sheets - exept the German figures - everything else is very close to the figures in the advice.
+Most important landing location per stock in 2018 - *where to set the treshold for that?*
 
 Relevant figures can be found in 004_RCG_BS_SPF_locations.xlsx
 
@@ -32,7 +28,7 @@ options(scipen = 9999,
         max.print = 100000)
 
 data_dir <- "Q:/dfad/users/kibi/data/RCG/from_share_point/"
-output_dir <- "Q:/mynd/RCM/RCG_BA/SamplingPlans/SmallPelagics/output/"
+output_dir <- "Q:/mynd/kibi/projects_wks_wgs/RCG_SPF_Baltic/RCG_BA/SamplingPlans/SmallPelagics/output/"
 
 knitr::opts_chunk$set(
   echo = F,
@@ -48,7 +44,7 @@ knitr::opts_chunk$set(
 
 dat <- readRDS(paste(data_dir, "df_bs_spf.rds", sep = ""))
 
-dt_spf <- filter(dat, sppName %in% c("Sprattus sprattus", "Clupea harengus"))
+dt_spf <- filter(dat, sppName %in% c("Sprattus sprattus", "Clupea harengus") & year == 2018)
 ```
 
 ```{r}
@@ -71,7 +67,7 @@ Total number of unique locations (treshold 95% accumulated per stock): `r nrow(d
 
 Total number of unique locations (treshold 90% accumulated per stock): `r nrow(distinct(filter(ungroup(loc_cum), cumpct <= 90 | pct >= 90), landLoc))`
 
-Total number of unique locations (treshold 84% accumulated per stock): `r nrow(distinct(filter(ungroup(loc_cum), cumpct <= 85 | pct >= 85), landLoc))`
+Total number of unique locations (treshold 85% accumulated per stock): `r nrow(distinct(filter(ungroup(loc_cum), cumpct <= 85 | pct >= 85), landLoc))`
 
 
 ```{r, include = F}
@@ -147,4 +143,116 @@ saveWorkbook(wb, paste(output_dir, "004_RCG_BS_SPF_locations.xlsx", sep = ""), o
 
 
 ```
+
+
+# Finding the locations - active only
+
+Most important landing location per stock in 2018 - *where to set the treshold for that?*
+
+Relevant figures can be found in 004_RCG_BS_SPF_locations_active.xlsx
+
+```{r load_data_active, include = F}
+
+dat <- readRDS(paste(data_dir, "df_bs_spf.rds", sep = ""))
+
+dt_spf <- filter(dat, sppName %in% c("Sprattus sprattus", "Clupea harengus") & year == 2018 & gearType == "Active")
+```
+
+```{r}
+kable(summarise(group_by(dt_spf, year, stock), tons = sum(landWt/1000)))
+```
+
+```{r loc_stock_active}
+
+loc <- arrange(summarise(group_by(dt_spf, stock, landLoc), tons = sum(landWt/1000)), stock, -tons)
+
+loc_cum <- mutate(loc, cumsum = cumsum(tons), cumpct = (cumsum(tons)/sum(tons))*100, pct = (tons/sum(tons))*100)
+
+```
+
+## Setting a treshold
+
+Total number of locations: `r length(unique(loc_cum$landLoc))`
+
+Total number of unique locations (treshold 95% accumulated per stock): `r nrow(distinct(filter(ungroup(loc_cum), cumpct <= 95 | pct >= 95), landLoc))`
+
+Total number of unique locations (treshold 90% accumulated per stock): `r nrow(distinct(filter(ungroup(loc_cum), cumpct <= 90 | pct >= 90), landLoc))`
+
+Total number of unique locations (treshold 85% accumulated per stock): `r nrow(distinct(filter(ungroup(loc_cum), cumpct <= 85 | pct >= 85), landLoc))`
+
+
+```{r, include = F}
+
+#Create a workbook with all the options
+
+wb <- createWorkbook("RCG_BS_SPF_locations_active")
+addWorksheet(wb, "treshold_85")
+addWorksheet(wb, "treshold_90")
+addWorksheet(wb, "treshold_95")
+addWorksheet(wb, "all")
+addWorksheet(wb, "all_per_stock")
+
+
+all <-
+  arrange(
+    mutate(
+      distinct(filter(ungroup(loc_cum), cumpct <= 100 |
+                        pct >= 100), landLoc),
+      "type_of_loc_eg_factory_auction_" = "",
+      "type_of_landings" = "",
+      "possible_to_sample" = "",
+      "Presently_sampled" = ""
+    ),
+    landLoc
+  )
+t_85 <-
+  arrange(
+    mutate(
+      distinct(filter(ungroup(loc_cum), cumpct <= 85 |
+                        pct >= 85), landLoc),
+      "type_of_loc" = "",
+      "type_of_landings" = "",
+      "possible_to_sample" = "",
+      "Presently_sampled" = ""
+    ),
+    landLoc
+  )
+t_90 <-
+  arrange(
+    mutate(
+      distinct(filter(ungroup(loc_cum), cumpct <= 90 |
+                        pct >= 90), landLoc),
+      "type_of_loc" = "",
+      "type_of_landings" = "",
+      "possible_to_sample" = "",
+      "Presently_sampled" = ""
+    ),
+    landLoc
+  )
+t_95 <-
+  arrange(
+    mutate(
+      distinct(filter(ungroup(loc_cum), cumpct <= 95 |
+                        pct >= 95), landLoc),
+      "type_of_loc" = "",
+      "type_of_landings" = "",
+      "possible_to_sample" = "",
+      "Presently_sampled" = ""
+    ),
+    landLoc
+  )
+
+
+writeData(wb, sheet = "treshold_85", t_85)
+writeData(wb, sheet = "treshold_90", t_90)
+writeData(wb, sheet = "treshold_95", t_95)
+writeData(wb, sheet = "all", all)
+writeData(wb, sheet = "all_per_stock", loc_cum)
+saveWorkbook(wb, paste(output_dir, "004_RCG_BS_SPF_locations_active.xlsx", sep = ""), overwrite = TRUE)
+
+
+
+
+```
+
 
