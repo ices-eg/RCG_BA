@@ -27,7 +27,6 @@
 	ls()
 	
 	# wishlist
-		# fishdayId vs. haulId
 		# POL: add possibility of different vessel numbers per week
 		# figure with 3 maps
 			# samples obtained
@@ -36,6 +35,7 @@
 		# add simulation loop, outputs, 95% confidence intervals
 		# DNK: add possibility of taking 1 sample from all trips of the vessel list
 		# check if possibility of % proportion in sample, and verything processed.
+		# simulation fishdayId: can it be made more realistic with averaging over number of fishing operations and implementing the haulId method?
 
 	# other
 		# Code produced should
@@ -54,6 +54,28 @@
 		# vessel in vessel-list vs non-vessel list
 		# allow future integration between countries (to look at regional outputs)
 
+
+
+	# to be defined by user: withinTripSampUnit
+		# this is what will be sampled withinTrip [alternative to select depend on available data]
+			withinTripSampUnit <- "haulId" # "fishdayId"
+			
+	# creates withinTripSampUnit column
+		testData$withinTripSampUnit<-testData[[withinTripSampUnit]]
+	
+	# makes a consistency check
+		agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','withinTripSampUnit','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','vslId','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
+		sum(duplicated(data.frame(testData)[,agg_columns]))
+			# tries to solve if withinTripSampUnit=="fishdayId"
+				# if there are duplicates, withinTripSampUnit is likely logbookdayId and not fishdayId
+				if (withinTripSampUnit=="fishdayId")
+					{
+					testData$withinTripSampUnit<-paste(testData$fishdayId, testData$rect, testData$area, testData$foCatEu6) # thi is 
+					testData<-testData[, list(landWt=sum(landWt)),agg_columns]
+					sum(duplicated(data.frame(testData)[,agg_columns]))	
+					}
+			if(sum(duplicated(data.frame(testData)[,agg_columns]))!=0) stop("Probable error in data format")		
+				
 
 
     # ======================
@@ -90,7 +112,7 @@
                     for (i in 1:nrow(out))
                         {
                         out$fishTripId[i]<-unique(dt0[depWeek==out$weektrip[i] & vslId==out$vslId[i],]$fishTripId)[1]
-                        #out$haulId[i]<-unique(dt0[fishTripId==out$fishTripId[i],]$haulId)[1]
+                        #out$withinTripSampUnit[i]<-unique(dt0[fishTripId==out$fishTripId[i],]$withinTripSampUnit)[1]
                         }
                     if(fill_quota==TRUE) # takes a max of n_vessels
                     {
@@ -108,20 +130,20 @@
 					# known caveats: realistic only in single-spp high-dominance situations, will fail in more equitable distributions: a clean sample with only one species  is provided by fisher even if there are other species significantly present in the haul
 					
 					# run next lines
-                    agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','haulId','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','vslId','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
+                    agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','withinTripSampUnit','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','vslId','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
                     dt0agg<-dt0;dt0agg<-dt0agg[, list(landWt=sum(landWt)),agg_columns]                    
-						selected_sample<-dt0agg[fishTripId %in% out$fishTripId,][,list(sppName=sppName[which(landWt==max(landWt))]), list(haulId)]
-						dt_sample <- dt0agg[paste(haulId, sppName) %in% paste(selected_sample$haulId, selected_sample$sppName),]
+						selected_sample<-dt0agg[fishTripId %in% out$fishTripId,][,list(sppName=sppName[which(landWt==max(landWt))]), list(withinTripSampUnit)]
+						dt_sample <- dt0agg[paste(withinTripSampUnit, sppName) %in% paste(selected_sample$withinTripSampUnit, selected_sample$sppName),]
 						# solves issues of no dominance (randomly samples)
-						aux<-tapply(dt_sample$sppName, dt_sample$haulId, function(x){length(unique(x))})
-						dt_sample$prob<-dt_sample$haulId %in% names(aux[aux>1])
-						ls1<-split(dt_sample, dt_sample$haulId)
+						aux<-tapply(dt_sample$sppName, dt_sample$withinTripSampUnit, function(x){length(unique(x))})
+						dt_sample$prob<-dt_sample$withinTripSampUnit %in% names(aux[aux>1])
+						ls1<-split(dt_sample, dt_sample$withinTripSampUnit)
 						ls2<-lapply(ls1, function(x){
 													if (all(x$prob==TRUE)) {x<-x[sample(1:nrow(x), size=1),] } else {x}
 													})
 						dt_sample<-rbindlist(ls2)									
 							# QCA: must yield TRUE if problems solved
-								sum(tapply(dt_sample$sppName, dt_sample$haulId, function(x){length(unique(x))})>1)==0
+								sum(tapply(dt_sample$sppName, dt_sample$withinTripSampUnit, function(x){length(unique(x))})>1)==0
 								dt_sample$prob<-NULL
 				
 				# alternative 1b: ask only for the dominant of species in a target list (target_spp2)
@@ -131,20 +153,20 @@
 					# user-defined: you need to define the target list you want to consider
 						target_spp2 <- c("Sprattus sprattus", "Clupea harengus")
 					# run next lines
-						agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','haulId','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','vslId','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
+						agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','withinTripSampUnit','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','vslId','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
 						dt0agg<-dt0;dt0agg<-dt0agg[, list(landWt=sum(landWt)),agg_columns]                    
-						selected_sample<-dt0agg[fishTripId %in% out$fishTripId,][sppName %in% target_spp2,list(sppName=sppName[which(landWt==max(landWt))]), list(haulId)]
-						dt_sample <- dt0agg[paste(haulId, sppName) %in% paste(selected_sample$haulId, selected_sample$sppName),]
+						selected_sample<-dt0agg[fishTripId %in% out$fishTripId,][sppName %in% target_spp2,list(sppName=sppName[which(landWt==max(landWt))]), list(withinTripSampUnit)]
+						dt_sample <- dt0agg[paste(withinTripSampUnit, sppName) %in% paste(selected_sample$withinTripSampUnit, selected_sample$sppName),]
 						# solves issues of no dominance (randomly samples)
-						aux<-tapply(dt_sample$sppName, dt_sample$haulId, function(x){length(unique(x))})
-						dt_sample$prob<-dt_sample$haulId %in% names(aux[aux>1])
-						ls1<-split(dt_sample, dt_sample$haulId)
+						aux<-tapply(dt_sample$sppName, dt_sample$withinTripSampUnit, function(x){length(unique(x))})
+						dt_sample$prob<-dt_sample$withinTripSampUnit %in% names(aux[aux>1])
+						ls1<-split(dt_sample, dt_sample$withinTripSampUnit)
 						ls2<-lapply(ls1, function(x){
 													if (all(x$prob==TRUE)) {x<-x[sample(1:nrow(x), size=1),] } else {x}
 													})
 						dt_sample<-rbindlist(ls2)									
 							# QCA: must yield TRUE if problems solved
-								sum(tapply(dt_sample$sppName, dt_sample$haulId, function(x){length(unique(x))})>1)==0
+								sum(tapply(dt_sample$sppName, dt_sample$withinTripSampUnit, function(x){length(unique(x))})>1)==0
 						dt_sample$prob<-NULL
 									
 							# NOTE: there is a difference between fishTripId present in out and dt_sample 
@@ -156,7 +178,7 @@
 				# alternative 2a: Ask for all species in the haul if they are present
 					# in brief, asks fishers to provide a sample with all species in haul. Sample weight proportions will be proportional to weight proportions in haul (i.e., assumed fully representative in weight)
 					# known caveats: realism issues. There is a (perhaps too strong but frequently useful) assumption involved in fishers being able to take a sample representative in weight. All species will come up in sample no matter how rare. 
-					agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','haulId','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','vslId','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
+					agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','withinTripSampUnit','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','vslId','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
                     dt0agg<-dt0;dt0agg<-dt0agg[, list(landWt=sum(landWt)),agg_columns]
 						dt_sample <- dt0agg[fishTripId %in% out$fishTripId, ]
 
@@ -164,7 +186,7 @@
 					# in brief, asks fishers to provide a sample with species from a list present in haul. Sample weight proportions by species will be proportional to weight proportions of target species in haul (i.e., assumed representative in weight of target species)
 					# known caveats: not realistic, only provided in case it is ever considered useful. Assumes fishers will subset a few species representatively to haul weights of those species which is difficult to conceive.
 					target_spp2 <- c("Sprattus sprattus", "Clupea harengus")
-                    agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','haulId','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','vslId','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
+                    agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','withinTripSampUnit','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','vslId','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
                     dt0agg<-dt0;dt0agg<-dt0agg[, list(landWt=sum(landWt)),agg_columns]
 						dt_sample <- dt0agg[fishTripId %in% out$fishTripId & sppName %in% target_spp2, ]
 						dim(dt_sample)
@@ -173,14 +195,14 @@
 					# in brief: assumes that if a species is >sign_prop than it will be present in the sample. Those present will be present in the exact weight proportions to each other as found in the haul.
 					# known caveats: more realistic, but requires definition of sign_prop. sign_prop is also expressed in weight (volume might reflect better the selection process involved in taking a box)
 					sign_prop<-0.3
-					agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','haulId','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','vslId','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
+					agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','withinTripSampUnit','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','vslId','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
                     dt0agg<-dt0;dt0agg<-dt0agg[, list(landWt=sum(landWt)),agg_columns]
 						dt_sample <- dt0agg[fishTripId %in% out$fishTripId, ]
 							# trimming down when rare
 								dim(dt_sample)
-								aux<-tapply(dt_sample$landWt, list(dt_sample$haulId,dt_sample$sppName), sum); aux[is.na(aux)]<-0; aux<-prop.table(aux,1); aux<-aux>sign_prop
+								aux<-tapply(dt_sample$landWt, list(dt_sample$withinTripSampUnit,dt_sample$sppName), sum); aux[is.na(aux)]<-0; aux<-prop.table(aux,1); aux<-aux>sign_prop
 								aux<-reshape2::melt(aux); aux<-aux[aux[,3]==TRUE,]
-								dt_sample <- dt_sample[paste(dt_sample$haulId,dt_sample$sppName) %in% paste(aux[,1],aux[,2]),]
+								dt_sample <- dt_sample[paste(dt_sample$withinTripSampUnit,dt_sample$sppName) %in% paste(aux[,1],aux[,2]),]
 								dim(dt_sample)
 
 				# alternative 3b: Ask fishers for all species in a list (target_spp2) but only returns the ones with a significant proportion across target_spp2 (e.g., 0.3)
@@ -188,25 +210,25 @@
 					# known caveats: same assumptions as 3a and less realist, particularly when spp in target_spp2 are a small proportion of haul.
 					sign_prop<-0.3
 					target_spp2 <- c("Sprattus sprattus", "Clupea harengus")
-                    agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','haulId','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','vslId','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
+                    agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','withinTripSampUnit','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','vslId','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
                     dt0agg<-dt0;dt0agg<-dt0agg[, list(landWt=sum(landWt)),agg_columns]
 						dt_sample <- dt0agg[fishTripId %in% out$fishTripId & sppName %in% target_spp2, ]
 							# trimming down when rare
 								dim(dt_sample)
-								aux<-tapply(dt_sample$landWt, list(dt_sample$haulId,dt_sample$sppName), sum); aux[is.na(aux)]<-0; aux<-prop.table(aux,1); aux<-aux>sign_prop
+								aux<-tapply(dt_sample$landWt, list(dt_sample$withinTripSampUnit,dt_sample$sppName), sum); aux[is.na(aux)]<-0; aux<-prop.table(aux,1); aux<-aux>sign_prop
 								aux<-reshape2::melt(aux); aux<-aux[aux[,3]==TRUE,]
-								dt_sample <- dt_sample[paste(dt_sample$haulId,dt_sample$sppName) %in% paste(aux[,1],aux[,2]),]
+								dt_sample <- dt_sample[paste(dt_sample$withinTripSampUnit,dt_sample$sppName) %in% paste(aux[,1],aux[,2]),]
 								dim(dt_sample)
 				
 
 
 			   # alternative 4a: ask for random species from the haul
                    # 
-					agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','haulId','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','vslId','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
+					agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','withinTripSampUnit','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','vslId','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
 					dt0agg <- dt0; dt0agg<-dt0agg[, list(landWt=sum(landWt)),agg_columns]
 					dt_sample <- dt0agg[fishTripId %in% out$fishTripId, ]
 					dim(dt_sample)
-					ls1 <- split(dt_sample, dt_sample$haulId)
+					ls1 <- split(dt_sample, dt_sample$withinTripSampUnit)
 					ls2 <- lapply(ls1, function(x){
 									if (nrow(x)>1) {x<-x[sample(1:nrow(x), size=1),] } else {x}
 									})					
@@ -216,11 +238,11 @@
 			   # alternative 4b: ask for random species in the target list (target_spp2)
                    #					
 				   target_spp2 <- c("Sprattus sprattus", "Clupea harengus")
-                    agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','haulId','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','vslId','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
+                    agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','withinTripSampUnit','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','vslId','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
                     dt0agg <- dt0; dt0agg<-dt0agg[, list(landWt=sum(landWt)),agg_columns]
                  	dt_sample <- dt0agg[fishTripId %in% out$fishTripId & sppName %in% target_spp2, ]
 					dim(dt_sample)
-					ls1 <- split(dt_sample, dt_sample$haulId)
+					ls1 <- split(dt_sample, dt_sample$withinTripSampUnit)
 					ls2 <- lapply(ls1, function(x){
 									if (nrow(x)>1) {x<-x[sample(1:nrow(x), size=1),] } else {x}
 									})					
@@ -245,23 +267,23 @@
 					
 					boxWt = 4	# in kg
 					
-					samples_her<-dt0agg[vslId %in% target_list, list(landWt=landWt), list(haulId,sppName)][, list(wtInBox = sum(landWt[sppName=="Clupea harengus"])/sum(landWt)*boxWt), haulId]
+					samples_her<-dt0agg[vslId %in% target_list, list(landWt=landWt), list(withinTripSampUnit,sppName)][, list(wtInBox = sum(landWt[sppName=="Clupea harengus"])/sum(landWt)*boxWt), withinTripSampUnit]
 					samples_her$sppName<-"Clupea harengus"
 					assumed_herWeight<-0.024 # in kg
 					samples_her$nInBox<-round(samples_her$wtInBox/assumed_herWeight)
 					
-					samples_spr<-dt0agg[vslId %in% target_list, list(landWt=landWt), list(haulId,sppName)][, list(wtInBox = sum(landWt[sppName=="Sprattus sprattus"])/sum(landWt)*boxWt), haulId]
+					samples_spr<-dt0agg[vslId %in% target_list, list(landWt=landWt), list(withinTripSampUnit,sppName)][, list(wtInBox = sum(landWt[sppName=="Sprattus sprattus"])/sum(landWt)*boxWt), withinTripSampUnit]
 					samples_spr$sppName<-"Sprattus sprattus"
 					assumed_sprWeight<-0.008 # in kg
 					samples_spr$nInBox<-round(samples_spr$wtInBox/assumed_sprWeight)						
 
 					dt_sample$wtInBox<-NA
-					dt_sample$wtInBox[dt_sample$sppName=="Clupea harengus"]<-samples_her$wtInBox[match(paste(dt_sample[dt_sample$sppName=="Clupea harengus",]$haulId, dt_sample[dt_sample$sppName=="Clupea harengus",]$sppName), paste(samples_her$haulId, samples_her$sppName))]
-					dt_sample$wtInBox[dt_sample$sppName=="Sprattus sprattus"]<-samples_spr$wtInBox[match(paste(dt_sample[dt_sample$sppName=="Sprattus sprattus",]$haulId, dt_sample[dt_sample$sppName=="Sprattus sprattus",]$sppName), paste(samples_spr$haulId, samples_spr$sppName))]
+					dt_sample$wtInBox[dt_sample$sppName=="Clupea harengus"]<-samples_her$wtInBox[match(paste(dt_sample[dt_sample$sppName=="Clupea harengus",]$withinTripSampUnit, dt_sample[dt_sample$sppName=="Clupea harengus",]$sppName), paste(samples_her$withinTripSampUnit, samples_her$sppName))]
+					dt_sample$wtInBox[dt_sample$sppName=="Sprattus sprattus"]<-samples_spr$wtInBox[match(paste(dt_sample[dt_sample$sppName=="Sprattus sprattus",]$withinTripSampUnit, dt_sample[dt_sample$sppName=="Sprattus sprattus",]$sppName), paste(samples_spr$withinTripSampUnit, samples_spr$sppName))]
 				
 					dt_sample$nInBox<-NA
-					dt_sample$nInBox[dt_sample$sppName=="Clupea harengus"]<-samples_her$nInBox[match(paste(dt_sample[dt_sample$sppName=="Clupea harengus",]$haulId, dt_sample[dt_sample$sppName=="Clupea harengus",]$sppName), paste(samples_her$haulId, samples_her$sppName))]
-					dt_sample$nInBox[dt_sample$sppName=="Sprattus sprattus"]<-samples_spr$nInBox[match(paste(dt_sample[dt_sample$sppName=="Sprattus sprattus",]$haulId, dt_sample[dt_sample$sppName=="Sprattus sprattus",]$sppName), paste(samples_spr$haulId, samples_spr$sppName))]
+					dt_sample$nInBox[dt_sample$sppName=="Clupea harengus"]<-samples_her$nInBox[match(paste(dt_sample[dt_sample$sppName=="Clupea harengus",]$withinTripSampUnit, dt_sample[dt_sample$sppName=="Clupea harengus",]$sppName), paste(samples_her$withinTripSampUnit, samples_her$sppName))]
+					dt_sample$nInBox[dt_sample$sppName=="Sprattus sprattus"]<-samples_spr$nInBox[match(paste(dt_sample[dt_sample$sppName=="Sprattus sprattus",]$withinTripSampUnit, dt_sample[dt_sample$sppName=="Sprattus sprattus",]$sppName), paste(samples_spr$withinTripSampUnit, samples_spr$sppName))]
 
 			# adds expected and number of fish sampled from box (nInBoxSampled)
 					
@@ -274,7 +296,7 @@
 				# RESULT: No samples per area, quarter and spp
 					#table(dt_sample$area, dt_sample$landQuarter, dt_sample$sppName)
 					table(dt_sample2$area, dt_sample2$landQuarter, dt_sample2$sppName)
-					tapply(dt_sample2$haulId, list(dt_sample2$area, dt_sample2$landQuarter), function(x)length(unique(x)))
+					tapply(dt_sample2$withinTripSampUnit, list(dt_sample2$area, dt_sample2$landQuarter), function(x)length(unique(x)))
 					
 				# RESULT: No trips per area, quarter and spp
 					#tapply(dt_sample$fishTripId, list(dt_sample$area, dt_sample$landQuarter, dt_sample$sppName), function(x) length(unique(x)))
@@ -304,9 +326,9 @@
 									y1 <- split(x, x$area)
 									y2 <- lapply(y1, function(z, subsamp2 = subsamp1)
 												{
-												hauls<-unique(z$haulId)
+												hauls<-unique(z$withinTripSampUnit)
 												# subsamples hauls if n hauls > subsamp2
-												if (length(hauls)>subsamp2) z<-z[z$haulId %in% sample(hauls, size = subsamp2),]
+												if (length(hauls)>subsamp2) z<-z[z$withinTripSampUnit %in% sample(hauls, size = subsamp2),]
 												z
 												})
 									x <- rbindlist(y2)
