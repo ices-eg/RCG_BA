@@ -22,6 +22,8 @@
 #   4. Run the deriveVar to added needed stuff
 #   5. Checks
 #   6. Further adaptions. Based on the stuff from https://github.com/ices-tools-dev/FishPi2/blob/master/WP3/Code%20to%20create%20demNS%20for%202015%20and%202016%20-%2015.5.2019.r
+#   7. Output data - this data set may need to be further minimized, so it runs faster in the simualtions.
+#       That will happen in script 103_ based on the overviews from script 102_
 
 
 # TODO
@@ -62,15 +64,41 @@ no_stock <- summarise(group_by(filter(dat, stock == "no.defined.stock" & sppName
 
 distinct(dat, vslFlgCtry, landCtry)
 
-# 6. Further adaptions
+# 6. Further adaptions ----
 
-xx <- dat
-
-xx$landCtryFlag <-xx$landCtry
+dat$landCtryFlag <-dat$landCtry
 
 ## LandType is use to evaluating sampling of foreign vessels - a lot of countries do not sample these in the harbours
+dat$landType <- "own"
+dat$landType[which(dat$landCtryFlag != dat$vslFlgCtry)] <- "foreign"
 
-xx$landType <- "own"
-xx$landType[which(xx$landCtryFlag != xx$vslFlgCtry)] <- "foreign"
-xx$landTonnage <-xx$landWt/1000
-xx$fleetType <-paste(xx$vslFlgCtry,xx$vslLenCls,sep="_")
+dat$landTonnage <- dat$landWt / 1000
+dat$fleetType <- paste(dat$vslFlgCtry, dat$vslLenCls, sep = "_")
+
+# making a sppType field based on groupings of the ISSCAAP codes
+dat$sppType <- "other"
+
+dat$sppType[which(dat$ISSCAAP %in% c(31:34))] <- "demersal"
+dat$sppType[which(dat$ISSCAAP %in% c(51:56))] <- "mollusca"
+dat$sppType[which(dat$ISSCAAP %in% c(57))] <- "cephalopod"
+dat$sppType[which(dat$ISSCAAP %in% c(41:47))] <- "crustacea"
+dat$sppType[which(dat$ISSCAAP %in% c(35:37))] <- "pelagic"
+dat$sppType[which(dat$ISSCAAP %in% c(38))] <- "elasmobranchs"
+dat$sppType[which(dat$ISSCAAP %in% c(22:25))] <- "diadromous"
+dat$sppType[which(dat$ISSCAAP %in% c(74:83))] <- "benthos"
+dat$sppType[which(dat$ISSCAAP %in% c(91:93))] <- "weed"
+dat$sppType[which(dat$ISSCAAP %in% c(11:21))] <- "freshwater"
+dat$sppType[which(dat$ISSCAAP %in% c(61:64))] <- "mammals"
+
+# giving each trip a "main" sppType based on the landed weight by sppType code
+tripSppTypeWt <-
+  tapply(dat$landWt, list(dat$sppType, dat$fishTripId), sum)
+tripMaxSppTypeWt <- apply(tripSppTypeWt, 2, max, na.rm = T)
+tripMaxSppType <-
+  row.names(tripSppTypeWt)[apply(tripSppTypeWt, 2, which.max)]
+tripMaxSppTypeChecked <-
+  tripMaxSppType[match(dat$fishTripId, names(tripMaxSppTypeWt))]
+dat$tripMainSppType <- tripMaxSppTypeChecked
+
+# 7. Output data ----
+saveRDS(dat, paste0(path_output_data, "data_prepared_for_fishPi2.rsd"))
