@@ -109,7 +109,7 @@ myResObj <-setUpSim(nsim, myData$data, simName = scenario)
 
 cat(paste("\nStarting simulation: ", scenario,"\n"))
 # run the simulations
-results <- runSim(nsim, myData, maxSsuSamp = 2, myResObj, sampleForeign = F, save = TRUE, saveLoc = simSaveLoc, simName = scenario)
+results <- runSim(nsim, myData, maxSsuSamp = 2, myResObj, sampleForeign = sampleForeignVessels, save = TRUE, saveLoc = simSaveLoc, simName = scenario)
 
 
 # if nsim > 1 then we calculate some summary results
