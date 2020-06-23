@@ -1,4 +1,12 @@
-# Code to run the fishPi2 WP3 simulations for the North Sea case study
+
+
+# Script for testing the fishPiSim package - this simulates harbour sampling - the scrips requires two input files, one with
+#  scenario setting and one with specific about the samplingunits in this case ports, the will be create with script 104_.
+#  Original test script and an example of the input files can be found in the fishPiSim package https://github.com/ices-tools-dev/FishPi2/tree/master/WP3
+
+# Kirsten Birch Håkansson, DTU Aqua
+#   v1: 20200623 - Just running the simulation
+
 
 #--------------------------------------------------
 # Set-up
@@ -10,55 +18,40 @@ setwd(path.data)
 # load the libraries and functions
 library(fishPiSim)
 library(survey)
-lengthUnique <-function(x){length(unique(x))}
+lengthUnique <- function(x){length(unique(x))}
 
 # SAVE LOCATIONS - PUT YOUR OWN PATHS HERE !!!
 # location for saved simulation files
-simSaveLoc <- "X:/fishPi2/simulation output/"
+simSaveLoc <- "Q:/mynd/kibi/projects_wks_wgs_rcgs/ISSG_small_pelagics_in_the_Baltic/gits/RCG_BA/SmallPelag/SimsGroup1/1_sim_landings/output/test/"
 # location for saved simulation plots
-plotSaveLoc <- "X:/fishPi2/simulation plots and tables output/Plots/"
+plotSaveLoc <- "Q:/mynd/kibi/projects_wks_wgs_rcgs/ISSG_small_pelagics_in_the_Baltic/gits/RCG_BA/SmallPelag/SimsGroup1/1_sim_landings/output/test/"
 # location for saved simulation tables?
-tableSaveLoc <- "X:/fishPi2/simulation plots and tables output/Tables Summary/"
+tableSaveLoc <- "Q:/mynd/kibi/projects_wks_wgs_rcgs/ISSG_small_pelagics_in_the_Baltic/gits/RCG_BA/SmallPelag/SimsGroup1/1_sim_landings/output/test/"
 
 # Definitions of countries, species, areas, and other definitions of interest
-ctryOfInterest <-c("BEL","DEU","DNK","FRA","GBE","GBS","NLD","SWE")
-widerNSea <- c("27.7.d" , "27.4.a" ,"27.4.b", "27.4.c", "27.3.a.20", "27.3.a.21", "27.3.a")
-fishOfInterest <- c("PLE","POK","COD","HAD","SOL","WHG","HKE","ANF", "TUR","GUU","DAB","MUR","LEM","LIN","BLL","FLE","GUG","POL","WIT")
-demISSCAAP <- c(31:34)
+ctryOfInterest <- c("DEU", "DNK", "EST", "FIN", "LTU", "LVA", "POL", "SWE")
+#widerNSea <- c("27.7.d" , "27.4.a" ,"27.4.b", "27.4.c", "27.3.a.20", "27.3.a.21", "27.3.a")
+fishOfInterest <- c("SPR", "HER")
+#demISSCAAP <- c(31:34)
 
 # What population are we sampling from ?
 
-load("X:/fishPi2/simulation code/fishPiSim package/testData.rData")
-testData <- testData[!is.na(testData$landCtry),]
+dat <- readRDS("data_prepared_minimized_for_fishPi2_test.rsd")
 
 # Create the dataframe xx
-xx <- testData
-# If required, adjust gear, species and landCtry codes:
-# Simplify gears
-xx$foCatReg <- xx$foCatEu6
-xx$foCatReg <- gsub("OTB","OTC",xx$foCatReg)
-xx$foCatReg <- gsub("PTB","OTC",xx$foCatReg)
-xx$foCatReg <- gsub("OTT","OTC",xx$foCatReg)
-xx$foCatReg[!(substr(xx$foCatReg,1,3) %in% c("OTC","TBB","SSC","GNS","SDN","GTR"))] <- "MIS_MIS_0_0_0"
-# group subspecies
-xx$sppReg <- xx$sppFAO
-xx$sppReg[xx$sppFAO == "MNZ" |xx$sppFAO == "MON" |xx$sppFAO == "ANK"] <- "ANF"
-xx$sppReg[xx$sppFAO == "MEG" |xx$sppFAO == "LBD" ] <- "LEZ"
-# group sepcies not of interest
-xx$sppReg[!(xx$sppFAO %in% fishOfInterest)] <- "ZZZ"
-# move GBW to GBE
-xx$landCtry[xx$landCtry =="GBW"] <- "GBE"
-xx$vslFlgCtry[xx$vslFlgCtry =="WLS"] <- "ENG"
+xx <- dat
 
-if(!is.null(xx)){rm(testData)
-gc()}
+if (!is.null(xx)) {
+  rm(dat)
+  gc()
+}
 
 #--------------------------------------------------
 # Set-up variables for stratification
 #--------------------------------------------------
 
 # read in the port sampling frame:
-portFrame <-read.csv(file=paste("PortFrame_example.csv")) # using the 2015 port allocations
+portFrame <- read.csv(file=paste("PortFrame_example.csv")) # using the 2015 port allocations
 names(portFrame)
 
 # It may be necessary to create new variable to be able to create the required stratification.
