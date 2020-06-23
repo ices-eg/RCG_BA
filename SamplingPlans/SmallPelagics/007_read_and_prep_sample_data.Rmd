@@ -64,9 +64,12 @@ hh_spf <- filter(
       )
   )
 
-#hl <- read.csv(paste0(data_dir, "CS HL SMAWL 2009-2018.csv"), sep = ";", na.strings = "NULL")
+sl <- read.csv(paste0(data_dir, "CS SL SMAWL 2009-2018.csv"), sep = ";", na.strings = "NULL")
+
+hl <- read.csv(paste0(data_dir, "CS HL SMAWL 2009-2018.csv"), sep = ";", na.strings = "NULL")
 
 ca <- read.csv(paste0(data_dir, "CS CA SMAWL 2009-2018.csv"), sep = ";", na.strings = "NULL")
+
 ca_1 <- filter(ca, Year %in% c(2017, 2018))
 ca_1 <- rename(ca_1, CS_SMAWLId = ï..CS_SMAWLId)
 rm(ca)
