@@ -1,0 +1,80 @@
+---
+title: "005_target_population_self_sampling"
+author: "Kirsten Birch Håkansson, DTU Aqua"
+date: "20/05/2019"
+output: pdf_document
+---
+
+
+# Trip
+
+How to define a trip targeting SPF
+
+
+```{r}
+
+library(dplyr)
+library(knitr)
+library(lubridate)
+library(ggplot2)
+
+data_dir <- "Q:/dfad/users/kibi/data/RCG/from_share_point/"
+output_dir <- "Q:/mynd/kibi/projects_wks_wgs/RCG_SPF_Baltic/RCG_BA/SamplingPlans/SmallPelagics/output/"
+
+knitr::opts_chunk$set(
+  echo = F,
+  warning = F,
+  message = F,
+  error = F,
+  comment = F,
+  fig.width = 16, fig.height = 8, fig.path = output_dir, dpi = 900, dev = 'jpeg', results = 'asis')
+
+
+
+```
+
+```{r}
+
+dat <- filter(readRDS(paste(data_dir, "df_bs_spf.rds", sep = "")), year == 2017)
+dat <- mutate(dat, sppGroup = ifelse(sppName %in% c("Clupea harengus", "Sprattus sprattus"), "HER+SPR", "Other"))
+
+```
+
+```{r}
+
+vsl_total <- summarise(group_by(dat, vslId), no_trips_total = length(unique(fishTripId)), tons_total = sum(landWt/1000))
+vsl_gearType <- summarise(group_by(dat, vslId, gearType), no_trips = length(unique(fishTripId)))
+
+gearType_pct <- mutate(left_join(vsl_total, vsl_gearType), pct = no_trips / no_trips_total)
+
+dat_1 <- mutate(left_join(dat, gearType_pct), sampling_frame = ifelse(gearType == "Active" & pct > 0.9999, "yes", "no"),
+                exclude_reason = ifelse(gearType == "Passive" & pct > 0.9999, "100 pct passive", 
+                                        ifelse(gearType == "Active" & pct <= 0.9999, "< 100 pct active", 
+                                               ifelse(gearType == "Passive" & pct > 0.0001, "Some passive", NA))))
+
+test <- distinct(dat_1, sampling_frame, exclude_reason, pct, gearType)
+
+# Species
+
+
+vsl_sppGroup <- summarise(group_by(dat_1, vslId, sppGroup), no_trips = length(unique(fishTripId)), tons = sum(landWt/1000))
+
+dat_2 <- mutate(left_join(dat_1, vsl_sppGroup), pct_spp = tons / tons_total,
+                       sampling_frame = ifelse(sppGroup == "HER+SPR" & pct_spp > 0.95 & sampling_frame == "yes", "yes", 
+                                               ifelse(sppGroup == "Other" & pct_spp >= 0.05 & sampling_frame == "yes", "no",
+                                                      ifelse(is.na(sampling_frame), "no", sampling_frame))))
+da
+
+
+
+test <- distinct(dat_2, sampling_frame, exclude_reason, pct, gearType, pct_spp, sppGroup)
+
+```
+
+```{r}
+
+kable(summarise(group_by(dat_2, sampling_frame, vslFlgCtry, vslLenCls), tons = sum(landWt/1000), no_trips = length(unique(fishTripId)), no_vsl = length(unique(vslId))))
+
+```
+
+

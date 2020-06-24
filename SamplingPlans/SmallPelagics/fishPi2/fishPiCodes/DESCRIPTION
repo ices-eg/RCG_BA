@@ -1,0 +1,11 @@
+Package: fishPiCodes
+Type: Package
+Title: fishPi project code lists
+Version: 1.0.19
+Date: 25th May 2015
+Author: Alastair Pout
+Depends: R(>= 3.0.0), methods
+Maintainer: <a.pout@marlab.ac.uk>
+Description: Data formats for the fishPi project 
+License: GPL (>= 2)
+Built: R 3.2.1; ; 2018-05-17 12:20:41 UTC; windows

@@ -1,0 +1,356 @@
+---
+title: "002_compile_prep_check_data_kibi"
+author: "Kirsten Birch Håkansson, DTU Aqua"
+date: today()
+output: pdf_document
+---
+
+# Data
+
+Downloaded _prepared.Rdata from share point ....
+
+
+```{r setup, include=FALSE}
+library(data.table)
+library(fishPiCodes)	
+library(foreign) 
+library(dplyr)
+library(knitr)
+library(lubridate)
+library(ggplot2)
+
+data_dir <- "Q:/dfad/users/kibi/data/RCG/from_share_point/"
+output_dir <- "Q:/mynd/kibi/projects_wks_wgs/RCG_SPF_Baltic/RCG_BA/SamplingPlans/SmallPelagics/output/"
+
+knitr::opts_chunk$set(
+  echo = F,
+  warning = F,
+  message = F,
+  error = F,
+  comment = F,
+  fig.width = 16, fig.height = 8, fig.path = output_dir, dpi = 900, dev = 'jpeg', results = 'asis')
+
+#setwd("SamplingPlans/SmallPelagics")
+```
+
+## Nuno's check
+
+```{r, include = F}
+
+# Code from 002_compile_and_prepare_countries_data - created by Nuno
+
+
+library(data.table)		
+		
+# ========================
+# reads in data
+# ========================
+ 
+ for(ctry in c("DEU","DNK","EST","FIN","LTU","LVA","POL","SWE")) 
+	{
+	load(paste(data_dir, ctry, "_prepared.Rdata", sep=""))
+	}
+
+  dt_deu <- select(dt_deu, -spp_Code_aphia)	
+
+	dt1<-bind_rows(dt_deu, dt_dnk, dt_est, dt_fin, dt_ltu, dt_lva, dt_pol, dt_swe)
+
+# ========================	
+# some additional variables
+# ========================
+	 
+	# Year of landing
+	dt1$year<-format(as.Date(dt1$landDate), format="%Y") 
+
+	# Month of landing
+	dt1$month<-factor(as.numeric(format(as.Date(dt1$landDate), format="%m")), levels=1:12) 
+	
+	# gearType: active or passive
+	active_gears<-c('OTB','PTM','PTB','SDN','OTM','PS_','SB_','OTT')
+	passive_gears<-unique(substring(dt1$foCatEu6,1,3))[!unique(substring(dt1$foCatEu6,1,3)) %in% active_gears]; passive_gears
+	dt1$gearType<-NA
+	dt1$gearType[substring(dt1$foCatEu6,1,3) %in% active_gears]<-"Active"
+	dt1$gearType[!substring(dt1$foCatEu6,1,3) %in% active_gears]<-"Passive"
+
+	
+# ========================
+# some additional checks and fixes on data
+# ======================== 
+ 
+	# issues on unique(vslLenCls) per trip		
+		nrow(dt1[, length(unique(vslLenCls)), fishTripId][V1>1,])
+	# issues on unique(vslLenCls) per vessel		
+		nrow(dt1[, length(unique(vslLenCls)), list(year, vslId, gearType)][V1>1,])
+		dt1[, length(unique(vslLenCls)), list(year, vslId, gearType)][V1>1,]
+			# all passive - will be outside of sampling frame so ok.
+	# issues on unique(depDate) per trip		
+		nrow(dt1[, length(unique(depLoc)), fishTripId][V1>1,])
+	# issues on unique(depLoc) per trip		
+		nrow(dt1[, length(unique(depLoc)), fishTripId][V1>1,])
+	# issues on unique(landDate) per trip		
+		nrow(dt1[, length(unique(landDate)), fishTripId][V1>1,])
+	# issues on unique(landLoc) per trip		
+		nrow(dt1[, length(unique(landLoc)), fishTripId][V1>1,])
+		dt1[, length(unique(landLoc)), list(fishTripId, gearType)][V1>1,]
+	# slight fix of 4 nephrops trips (for consistency only)
+		dt1$landLoc[dt1$fishTripId == "DNK20171121275"] <- "DKQSB"
+		dt1$landLoc[dt1$fishTripId == "DNK20180816126"] <- "DKQSB"
+		dt1$landLoc[dt1$fishTripId == "DNK20180816054"] <- "DKQSB"
+		dt1$landLoc[dt1$fishTripId == "DNK20180815955"] <- "DKQSB"
+		dt1[, length(unique(landLoc)), list(fishTripId, gearType)][V1>1,]
+			# all remainder are passive - will be outside of sampling frame so ok.
+	# issues on unique(sppCode) per sppName		
+		nrow(dt1[, length(unique(sppCode)), sppName][V1>1,])
+	# issues on unique(sppName) per sppCode		
+		nrow(dt1[, length(unique(sppName)), sppCode][V1>1,])
+			dt1$sppName[dt1$sppCode==127149]<-"Scophthalmus maximus"	
+			dt1$sppName[dt1$sppCode==10194]<-"Actinopterygii"	
+			nrow(dt1[, length(unique(sppName)), sppCode][V1>1,])
+	# duplicates
+			sum(duplicated(dt1))		
+			dt1[duplicated(dt1) | duplicated(dt1, fromLast=T),]
+			table(dt1[duplicated(dt1) | duplicated(dt1, fromLast=T),]$vslFlgCtry)
+			# fix: elimination
+			dt1<-dt1[!duplicated(dt1),]	
+	# ID duplicates
+		dt1[,.N, list(year, fishTripId, depDate, depLoc, landDate, landLoc, rect, area,foCatEu6, sppCode, sppName, landCat)][N>1,]
+		# fix by aggregation
+			dt1<-dt1[,list(landWt=sum(landWt)), list(year, vslFlgCtry,vslId,vslLenCls,fishTripId,depDate,depLoc,landDate,landLoc,rect,area,gearType,foCatEu6,sppCode,sppName,landCat)] 
+
+saveRDS(dt1, paste0(data_dir, "bs_spf_compiled.rds"))
+```
+
+## More checks
+
+```{r combine_trip_data, include = F}
+
+dt1$landDate <- as.Date(dt1$landDate)
+
+#correction of area 28
+
+dt1 <- mutate(dt1, area = ifelse(!(vslFlgCtry %in% c("LVA", "EST")) & area == "27.3.d.28", "27.3.d.28.2", area))
+
+dt1 <- mutate(dt1, area = ifelse(sppName == "Sprattus sprattus" &  area %in% c("27.3.d.28.1", "27.3.d.28.2"), "27.3.d.28", area))
+
+#Add stock
+#Add sppFAO - this is needed for the stock function
+data(ASFIS)
+
+FAO <- distinct(ASFIS, X3A_CODE, Scientific_name)
+FAO <- rename(FAO, sppFAO = X3A_CODE, sppName = Scientific_name)
+
+dt2 <- left_join(dt1, FAO) #More lines created with this join
+
+source("Q:/mynd/kibi/functions/GetStock_v1_1.R")
+
+dt2 <- GetStock(dt2)
+
+no_stock <- summarise(group_by(filter(dt2, stock == "no.defined.stock" & sppName %in% c("Clupea harengus", "Sprattus sprattus")), sppName, area, year, vslFlgCtry), landWt_ton = sum(landWt/1000))
+
+
+saveRDS(dt2, paste(data_dir, "df_bs_spf.rds", sep = ""))
+
+dt_spf <- filter(dt2, sppName %in% c("Sprattus sprattus", "Clupea harengus"))
+```
+
+
+```{r read_rdb, include = F}
+
+```
+
+## Area 27.3.d.28
+
+Important for herring
+
+*Do we need to correct or can we assume?*
+
+Guess it is only Estonia and Latvia fishing in the Gulf of Riga - *correct?*
+
+Assuming that 28.2, when not Latvia | Estonia
+
+```{r area_28}
+
+dt_28 <- filter(dt_spf, substr(area, 1, 9) == "27.3.d.28" & sppName == "Clupea harengus")
+
+kable(summarise(group_by(dt_28, vslFlgCtry, area, sppName), tons = sum(landWt/1000, na.rm = T)), caption = "Area 27.3.d.28 with or without .1 | .2")
+
+```
+
+## Landing categories
+
+*How to group / re-code?*
+
+```{r landCat}
+kable(summarise(group_by(dt_spf, vslFlgCtry, sppName, landCat), tons = sum(landWt/1000, na.rm = T)), caption = "Landing categories")
+```
+
+
+## Missing dates
+### landDate
+
+```{r mis_landdates}
+
+dt_depdates <- filter(dt_spf, landDate %in% c("", "NA", NA))
+
+mis <- summarise(group_by(dt_depdates, vslFlgCtry, sppName), tons = sum(landWt/1000, na.rm = T))
+total <- summarise(group_by(dt_spf, vslFlgCtry, sppName), tons_total = sum(landWt/1000, na.rm = T))
+mis_2 <- mutate(left_join(total, mis), pct_mis = (tons/tons_total)*100)
+
+kable(mis_2, caption = "Missing landDate")
+
+```
+
+### depDate
+
+```{r mis_depdates}
+
+dt_depdates <- filter(dt_spf, depDate %in% c("", "NA", NA))
+
+mis <- summarise(group_by(dt_depdates, vslFlgCtry, sppName), tons = sum(landWt/1000, na.rm = T))
+total <- summarise(group_by(dt_spf, vslFlgCtry, sppName), tons_total = sum(landWt/1000, na.rm = T))
+mis_2 <- mutate(left_join(total, mis), pct_mis = (tons/tons_total)*100)
+
+kable(mis_2, caption = "Missing depDate")
+
+```
+
+
+### both dates 
+
+```{r mis_dates}
+
+dt_depdates <- filter(dt_spf, depDate %in% c("", "NA", NA) & landDate %in% c("", "NA", NA))
+
+mis <- summarise(group_by(dt_depdates, vslFlgCtry, sppName), tons = sum(landWt/1000, na.rm = T))
+total <- summarise(group_by(dt_spf, vslFlgCtry, sppName), tons_total = sum(landWt/1000, na.rm = T))
+mis_2 <- mutate(left_join(total, mis), pct_mis = (tons/tons_total)*100)
+
+kable(mis_2, caption = "Missing both Date")
+
+```
+
+## Missing or incorrect location
+### landLoc
+
+```{r}
+data("UNLOCODE")
+dt_loc <- filter(dt_spf, !(landLoc %in% UNLOCODE$loCode))
+
+mis <- summarise(group_by(dt_loc, vslFlgCtry, sppName), tons = sum(landWt/1000, na.rm = T))
+total <- summarise(group_by(dt_spf, vslFlgCtry, sppName), tons_total = sum(landWt/1000, na.rm = T))
+mis_2 <- mutate(left_join(total, mis), pct_mis = (tons/tons_total)*100)
+
+kable(mis_2, caption = "Missing landLoc")
+
+```
+
+
+### depLoc
+
+```{r}
+data("UNLOCODE")
+dt_loc <- filter(dt_spf, !(depLoc %in% UNLOCODE$loCode))
+
+mis <- summarise(group_by(dt_loc, vslFlgCtry, sppName), tons = sum(landWt/1000, na.rm = T))
+total <- summarise(group_by(dt_spf, vslFlgCtry, sppName), tons_total = sum(landWt/1000, na.rm = T))
+mis_2 <- mutate(left_join(total, mis), pct_mis = (tons/tons_total)*100)
+
+kable(mis_2, caption = "Missing depLoc")
+
+```
+
+
+### Both loc
+
+```{r}
+data("UNLOCODE")
+dt_loc <- filter(dt_spf, !(landLoc %in% UNLOCODE$loCode) & !(depLoc %in% UNLOCODE$loCode))
+
+mis <- summarise(group_by(dt_loc, vslFlgCtry, sppName), tons = sum(landWt/1000, na.rm = T))
+total <- summarise(group_by(dt_spf, vslFlgCtry, sppName), tons_total = sum(landWt/1000, na.rm = T))
+mis_2 <- mutate(left_join(total, mis), pct_mis = (tons/tons_total)*100)
+
+kable(mis_2, caption = "Missing both Loc")
+
+```
+
+## Overall landings
+
+A table for checking against advice sheets
+
+
+```{r overall_lan}
+
+#kable(summarise(group_by(dt_spf, year, vslFlgCtry, area, sppName), tons = sum(landWt/1000, na.rm = T)), caption = "Overall landings")
+
+```
+
+# Analyses
+## Target population
+
+```{r target}
+
+dt_sum <- filter(summarise(group_by(dt2, fishTripId, sppName), ton = sum(landWt/1000, na.rm = T)), ton > 0)
+
+dt_sum_1 <- mutate(dt_sum, spp = ifelse(sppName %in% c("Sprattus sprattus", "Clupea harengus"), "HER+SPR", "other"))
+
+dt_sum_2 <- filter(summarise(group_by(dt_sum_1, fishTripId, spp), ton = sum(ton, na.rm = T)), ton > 0)
+
+dt_tot <- summarise(group_by(dt_sum_2, fishTripId), ton_tot = sum(ton, na.rm = T))
+
+dt_pct <- mutate(left_join(dt_sum_2, dt_tot), pct_her_spr_trip = (ton/ton_tot)*100)
+
+trips_her_spr <- mutate(arrange(filter(dt_pct, spp == "HER+SPR"), pct_her_spr_trip, ton), cum = cumsum(ton))
+
+
+```
+
+*When are trip targeting sprat or herring?*
+
+Total number of trips (all species); `r length(unique(dt_sum$fishTripId))`
+
+Total landings of herring and sprat (tons): `r as.character(round(sum(trips_her_spr$ton), digits = 0))`
+
+Total number of trips (more than 80 pct of sprat or herring); `r length(unique(dt_pct$fishTripId[dt_pct$pct_her_spr_trip > 80]))`
+
+Total landings of herring and sprat (more than 80 pct of sprat or herring): `r as.character(round(sum(trips_her_spr$ton[trips_her_spr$pct_her_spr_trip > 80]), digits = 0))`
+
+Total number of trips (more than 90 pct of sprat or herring); `r length(unique(dt_pct$fishTripId[dt_pct$pct_her_spr_trip > 90]))`
+
+Total landings of herring and sprat (more than 90 pct of sprat or herring): `r as.character(round(sum(trips_her_spr$ton[trips_her_spr$pct_her_spr_trip > 90]), digits = 0))`
+
+
+```{r, fig.cap = "xx"}
+
+ggplot(trips_her_spr, aes(x = pct_her_spr_trip)) +
+  geom_histogram(binwidth = 1) + 
+  geom_vline(xintercept = 79.5, color = "red") +
+  labs(title = "Number of trips per pct of herring and sprat", subtitle = "Red line: 80 pct. of herring or sprat", 
+       y = "Number of trips", x = "Pct. herring and sprat on a trip")
+
+```
+
+```{r, fig.cap = "xx"}
+
+ggplot(trips_her_spr, aes(x = pct_her_spr_trip, y = ton)) +
+  geom_bar(stat = "identity", width = 1) + 
+  geom_line(aes(x = pct_her_spr_trip, y = cumsum(ton)), col = "red") +
+  labs(title = "Tons per pct of herring and sprat", subtitle = "Red line: accumulated landings", 
+       y = "Tons", x = "Pct. herring and sprat on a trip")
+
+```
+
+
+
+# Stock
+
+```{r}
+kable(summarise(group_by(dt_spf, year, stock), ton = sum(landWt/1000)))
+```
+
+
+
+```{r}
+kable(summarise(group_by(dt_spf, year, vslFlgCtry, stock), ton = sum(landWt/1000)))
+```
+

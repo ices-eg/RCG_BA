@@ -1,0 +1,12 @@
+ASFIS                   The FAO ASFIS species lists.
+ASFIS_WoRMS             The FAO ASFIS species lists matched to the
+                        WoRMS species lists.
+UNLOCODE                UN Location Codes
+areas                   Areas
+metiers                 Metiers
+portCodeUK              UK port codes
+rectangles              ICES Statistical rectangles.
+species                 Species
+stocks                  Stocks
+vslType                 Vessel Types and DCF gear codes
+whatFish                Names and codes for fish species
