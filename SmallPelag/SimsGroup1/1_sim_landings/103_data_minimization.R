@@ -41,9 +41,10 @@ if (version == "test") {
   
   sppTypeIndex <- which(dat$tripMainSppType == "pelagic")
   dat_1 <- dat[sppTypeIndex,]
+  dat_2 <- subset(dat_1, year == "2017")
   
   
-  final <- dat_1[, vars]
+  final <- dat_2[, vars]
 }
 
 
