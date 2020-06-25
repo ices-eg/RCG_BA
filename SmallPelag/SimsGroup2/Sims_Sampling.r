@@ -63,20 +63,24 @@
 	# creates withinTripSampUnit column
 		testData$withinTripSampUnit<-testData[[withinTripSampUnit]]
 	
-	# makes a consistency check
+	# makes a few consistency checks
 		agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','withinTripSampUnit','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','vslId','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
 		sum(duplicated(data.frame(testData)[,agg_columns]))
+		if (withinTripSampUnit=="haulId" & sum(duplicated(data.frame(testData)[,agg_columns])))stop("Probable error in data format")	
+		agg_columns <- c('withinTripSampUnit','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','sppCode','sppName','stockCode','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
+		sum(duplicated(data.frame(testData)[,agg_columns]))
+		if (withinTripSampUnit=="haulId" & sum(duplicated(data.frame(testData)[,agg_columns])))stop("Probable error in data format")	
+	
 			# tries to solve if withinTripSampUnit=="fishdayId"
 				# if there are duplicates, withinTripSampUnit is likely logbookdayId and not fishdayId
-				if (withinTripSampUnit=="fishdayId")
-					{
-					testData$withinTripSampUnit<-paste(testData$fishdayId, testData$rect, testData$area, testData$foCatEu6) # thi is 
-					testData<-testData[, list(landWt=sum(landWt)),agg_columns]
-					sum(duplicated(data.frame(testData)[,agg_columns]))	
-					}
-			if(sum(duplicated(data.frame(testData)[,agg_columns]))!=0) stop("Probable error in data format")		
-				
-
+				# if (withinTripSampUnit=="fishdayId")
+					# {
+					# testData$withinTripSampUnit<-paste(testData$fishdayId, testData$rect, testData$area, testData$foCatEu6) # thi is 
+					# testData<-testData[, list(landWt=sum(landWt)),agg_columns]
+					# sum(duplicated(data.frame(testData)[,agg_columns]))	
+					# }
+			# if(sum(duplicated(data.frame(testData)[,agg_columns]))!=0) stop("Probable error in data format")		
+	
 
     # ======================
 	# example of simulation
