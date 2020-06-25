@@ -1,7 +1,7 @@
 ---
 title: "007_read_and_prep_sample_data"
 author: "Kirsten Birch Håkansson, DTU Aqua"
-date: "06/06/2019"
+date: \today
 output: pdf_document
 ---
 
@@ -28,15 +28,17 @@ knitr::opts_chunk$set(
 
 # Read in RDB CS data
 
-Only selecting samples with heernig | sprat in area 27.3
+Only selecting samples from  area 27.3. Only CA records with herrnig | sprat.
+
+Only 2017 & 2018 data selected the files have data from 2009-2019.
 
 ```{r data, include = F, eval = T}
 
-tr <- read.csv(paste0(data_dir, "CS TR Trip 2009-2018.csv"), sep = ";", na.strings = "NULL")
+tr <- read.csv(paste0(data_dir, "TR Trip.csv"), sep = ",", na.strings = "NULL")
 tr <- rename(tr, CS_TripId = ï..CS_TripId)
 tr_1 <- filter(tr, Year %in% c(2017, 2018))
 
-hh <- read.csv(paste0(data_dir, "CS HH Station 2009-2018.csv"), sep = ";", na.strings = "NULL")
+hh <- read.csv(paste0(data_dir, "HH Station.csv"), sep = ",", na.strings = "NULL")
 hh <- rename(hh, CS_StationId= ï..CS_StationId)
 hh_1 <- filter(hh, Year %in% c(2017, 2018))
 hh_spf <- filter(
@@ -64,12 +66,17 @@ hh_spf <- filter(
       )
   )
 
-sl <- read.csv(paste0(data_dir, "CS SL SMAWL 2009-2018.csv"), sep = ";", na.strings = "NULL")
+sl <- read.csv(paste0(data_dir, "SL SpeciesList.csv"), sep = ",", na.strings = "NULL")
+sl_1 <- filter(sl, Year %in% c(2017, 2018))
+sl_1 <- rename(sl_1, CS_SpeciesListId = ï..CS_SpeciesListId)
 
-hl <- read.csv(paste0(data_dir, "CS HL SMAWL 2009-2018.csv"), sep = ";", na.strings = "NULL")
+hl <- read.csv(paste0(data_dir, "HL Lenght.csv"), sep = ",", na.strings = "NULL")
+hl_1 <- filter(hl, Year %in% c(2017, 2018))
+hl_1 <- rename(hl_1, CS_LengthId = ï..CS_LengthId)
 
-ca <- read.csv(paste0(data_dir, "CS CA SMAWL 2009-2018.csv"), sep = ";", na.strings = "NULL")
+rm(tr, hh, sl, hl)
 
+ca <- read.csv(paste0(data_dir, "CA SMAWL.csv"), sep = ",", na.strings = "NULL")
 ca_1 <- filter(ca, Year %in% c(2017, 2018))
 ca_1 <- rename(ca_1, CS_SMAWLId = ï..CS_SMAWLId)
 rm(ca)
@@ -111,7 +118,7 @@ ca_spf <- mutate(ca_spf, Area = ifelse(Species == "Sprattus sprattus" &  Area %i
 ```
 
 
-# Adding stock
+# Adding stock to ca
 
 ```{r add_stock, include = T}
 
@@ -238,9 +245,11 @@ kable(distinct(hh_1, substr(FishingActivityCategoryEuropeanLvl6, 1, 3), gear_gro
 
 ```{r save_data, include = F, eval = T}
 
-saveRDS(ca_spf, paste(data_dir, "ca_bs_spf.rds", sep = ""))
+
 saveRDS(tr_2, paste(data_dir, "tr_bs_spf.rds", sep = ""))
 saveRDS(hh_1, paste(data_dir, "hh_bs_spf.rds", sep = ""))
-
+saveRDS(sl_1, paste(data_dir, "sl_bs_spf.rds", sep = ""))
+saveRDS(hl_1, paste(data_dir, "hl_bs_spf.rds", sep = ""))
+saveRDS(ca_spf, paste(data_dir, "ca_bs_spf.rds", sep = ""))
 
 ```
