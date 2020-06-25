@@ -59,7 +59,7 @@ table(xx$newStrata)
 # Scenario settings
 #--------------------------------------------------
 # How many simulations do you want to run ?
-nsim <- 100
+nsim <- 200
 
 # The scenario settings can either be input manually or read from an input file.
 # The benefits of using an input file are that a record remains of the input settings, and it is easier for running multiple scenarios sequentially as a loop
@@ -82,13 +82,12 @@ xx$domain <- paste(xx$stock, sep = "-")
 
 # Define your PSU:
 
-myPSU <- paste(xx$landLoc, xx$landDate, sep = "_") # the psu is site X day for the on-shore sampling
+myPSU <- xx$fishTripId #paste(xx$landLoc, xx$landDate, sep = "_") # the psu is site X day for the on-shore sampling
 
 unique(xx$landCtry)
 
 # Create strata:
-myStratum <- getStratum(xx, stratification = "landCtry", samplingExclusions = c("NA", NA, "NOR"))
-
+myStratum <- getStratum(xx, stratification = "vslFlgCtry", samplingExclusions = c("NA", NA, "NOR"))
 
 
 # Create Effort allocation:
@@ -96,9 +95,12 @@ myEffort <- getEffort(xx, strata = myStratum, strataType = "stratified",  alloca
                       PSU = myPSU, totalEffort = 600, psuThreshold = NA, minorEffortAllocation = NA) # The two latter needs to be NA
 # If a "none" stratum is missing, then this one don't work - need to hack
 
+# Setting the effort manually
+myEffort <- c(DEU = 50, DNK = 50, EST = 50, FIN = 50, LTU = 50, LVA = 50, POL = 50, SWE = 50)
+
 
 # setUpData sets up the data set:
-myData <-setUpData(xx, psu="siteXday", psuStratum = myStratum, stratumEffort = myEffort, domains=c("domain"))
+myData <-setUpData(xx, psu="fishTripId", psuStratum = myStratum, stratumEffort = myEffort, domains=c("domain"))
 
 # This is the end of the tryCatch function
 # }, error=function(e){cat(paste("\n\n\n ERROR in scenario ",scenario," :"),conditionMessage(e), "\n\n\n Skipping to next scenario")})

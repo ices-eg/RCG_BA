@@ -1,0 +1,149 @@
+---
+title: "011_foreign_landings"
+author: "Kirsten Birch Håkansson, DTU Aqua"
+date: \today
+output: pdf_document
+---
+
+
+```{r setup, include = FALSE}
+
+library(RColorBrewer)
+library(dplyr)
+library(tidyr)
+library(circlize)
+
+options(scripen = 500, digits = 0)
+
+data_dir <- "Q:/dfad/users/kibi/data/RCG/from_share_point/"
+output_dir <- "Q:/mynd/kibi/projects_wks_wgs/RCG_SPF_Baltic/RCG_BA/SamplingPlans/SmallPelagics/output/011/"
+
+
+knitr::opts_chunk$set( echo = F,
+  warning = F,
+  message = F,
+  error = F,
+  comment = F,
+  fig.width = 8, fig.height = 8, dpi = 900, dev = 'jpeg', results = 'asis', fig.path = output_dir)
+
+```
+
+```{r}
+
+dat <- filter(readRDS(paste(data_dir, "df_bs_spf.rds", sep = "")), year %in% c(2017, 2018) & sppName %in% c("Clupea harengus", "Sprattus sprattus"))
+
+unique(substr(dat$landLoc,1,2))
+unique(dat$vslFlgCtry)
+
+dat_1 <- mutate(dat, landCtry = ifelse(substr(landLoc, 1, 2) == "DE", "DEU",
+                                       ifelse(substr(landLoc, 1, 2) == "DK", "DNK",
+                                              ifelse(substr(landLoc, 1, 2) == "PL", "POL",
+                                                     ifelse(substr(landLoc, 1, 2) == "SE", "SWE",
+                                                            ifelse(substr(landLoc, 1, 2) == "EE", "EST",
+                                                                   ifelse(substr(landLoc, 1, 2) == "LV", "LVA",
+                                                                          ifelse(substr(landLoc, 1, 2) == "FI", "FIN",
+                                                                                 ifelse(substr(landLoc, 1, 2) == "LT", "LTU", 
+                                                                                        ifelse(substr(landLoc, 1, 2) == "NO", "NOR", NA))))))))))
+
+
+all <- mutate(dat_1, stock = "all")
+
+dat_2 <- bind_rows(dat_1, all)
+
+```
+
+
+```{r setup_colors, include = FALSE}
+#Setting factor to countries, fleet ...
+
+ctry_list = sort(unique(c(dat_2$vslFlgCtry,dat_2$landCtry)))
+for (i in c("vslFlgCtry","landCtry"))
+{
+  if (i %in% colnames(dat_2)) {
+    dat_2[,i] <- factor(dat_2[,i], levels = ctry_list)
+    } 
+}
+
+#Setting colors per countries fleet
+ddc <- levels(as.factor(dat_2$vslFlgCtry))
+ddc.col <- c("#e6194B", "#3cb44b", "#ffe119", "#4363d8", "#f58231", "#911eb4", "#42d4f4", "#f032e6", "#bfef45", "#fabebe", "#469990",
+             "#e6beff", "#9A6324", "#fffac8", "#800000", "#aaffc3", "#808000", "#ffd8b1", "#000075", "#a9a9a9", "#FF0000", "#000000",
+             "#00FF00", "#FF1493", "#0000FF",  "#7FFF00", "#68228B")
+names(ddc.col)  <- ddc
+
+```
+
+
+```{r}
+
+dat_3 <- as.data.frame(summarise(group_by(dat_2, landCtry, vslFlgCtry, stock, year), tons = sum(landWt/1000)))
+
+fak <- factor(factor(dat_3$stock):factor(dat_3$year))
+
+for (i in levels(fak)) {
+  
+  dat_sub <- filter(dat_3, fak == i)
+  
+  dat_4 <-
+    as.data.frame(summarise(group_by(dat_sub, landCtry, vslFlgCtry), tons = sum(tons)))
+  
+  chord <- spread(dat_4, landCtry, tons, fill = 0)
+  vslFlgCtry <- chord$vslFlgCtry
+  landCtry <- names(chord)[-1]
+  chord <- as.matrix(chord[, -1])
+  rownames(chord) = vslFlgCtry
+  
+  circos.par(gap.degree = 5)
+  chordDiagram(chord, grid.col = ddc.col, transparency = 0.25)
+  title(i, cex = 0.8)
+  circos.clear()
+  
+  cat("\n\\newpage\n")
+  
+}
+
+```
+
+```{r}
+
+dat_5 <- as.data.frame(summarise(group_by(dat_2, landCtry, vslFlgCtry, vslLenCls, stock, gearType, year), tons = sum(landWt/1000), no_trips = length(unique(fishTripId))))
+
+dat_6 <- filter(dat_5, stock != "all" & year == 2018)
+
+dat_6 <- mutate(dat_6, foreign = ifelse(vslFlgCtry == landCtry, "landed_home", "landed_abroad"))
+
+write.csv(dat_6, paste(output_dir, "fl_all.csv", sep = ""), row.names = F)
+
+overall <- spread(summarise(group_by(dat_6, year, stock, foreign), tons = sum(tons)), key = foreign, value = tons, fill = 0)
+
+write.csv(overall, paste(output_dir, "fl_overall.csv", sep = ""), row.names = F)
+
+```
+
+```{r}
+# matrix passive landings
+
+dat_passive <- filter(dat_6, gearType == "Passive")
+
+test <- arrange(spread(select(dat_passive, -no_trips), key = landCtry, value = tons, fill = 0), stock, vslFlgCtry)
+
+```
+
+```{r}
+dat_active <- filter(dat_6, gearType != "Passive")
+
+kable(arrange(spread(select(dat_active, -no_trips), key = landCtry, value = tons, fill = 0), stock, vslFlgCtry))
+```
+
+```{r}
+out_active <- arrange(spread(select(dat_active, -no_trips), key = landCtry, value = tons, fill = 0), stock, vslFlgCtry)
+
+write.csv(out_active, paste(output_dir, "fl_active_2018.csv", sep = ""), row.names = F)
+```
+
+
+```{r}
+out_active <- arrange(spread(select(dat_active, -tons), key = landCtry, value = no_trips, fill = 0), stock, vslFlgCtry)
+
+write.csv(out_active, paste(output_dir, "fl_active_2018_trips.csv", sep = ""), row.names = F)
+```

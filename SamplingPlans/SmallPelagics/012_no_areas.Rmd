@@ -1,0 +1,85 @@
+---
+title: "012_no_areas"
+author: "Kirsten Birch Håkansson, DTU Aqua"
+date: \today
+output: pdf_document
+---
+
+
+
+```{r}
+
+library(dplyr)
+library(knitr)
+library(lubridate)
+library(ggplot2)
+
+data_dir <- "Q:/dfad/users/kibi/data/RCG/from_share_point/"
+output_dir <- "Q:/mynd/kibi/projects_wks_wgs/RCG_SPF_Baltic/RCG_BA/SamplingPlans/SmallPelagics/output/012/"
+
+knitr::opts_chunk$set(
+  echo = F,
+  warning = F,
+  message = F,
+  error = F,
+  comment = F,
+  fig.width = 8, fig.height = 8, fig.path = output_dir, dpi = 900, dev = 'jpeg', results = 'asis')
+
+
+
+```
+
+```{r, include = F}
+
+dat <- filter(readRDS(paste(data_dir, "df_bs_spf.rds", sep = "")), year == 2017 & sppName %in% c("Clupea harengus", "Sprattus sprattus"))
+dat <- mutate(dat, sppGroup = ifelse(sppName %in% c("Clupea harengus", "Sprattus sprattus"), "HER+SPR", "Other"))
+
+```
+
+```{r setup_colors, include = FALSE}
+
+#Setting colors per countries fleet
+ddc <- levels(as.factor(dat$vslFlgCtry))
+ddc.col <- c("#e6194B", "#3cb44b", "#ffe119", "#4363d8", "#f58231", "#911eb4", "#42d4f4", "#f032e6", "#bfef45", "#fabebe", "#469990",
+             "#e6beff", "#9A6324", "#fffac8", "#800000", "#aaffc3", "#808000", "#ffd8b1", "#000075", "#a9a9a9", "#FF0000", "#000000",
+             "#00FF00", "#FF1493", "#0000FF",  "#7FFF00", "#68228B")
+names(ddc.col)  <- ddc
+
+```
+
+```{r}
+
+area_trip <- summarise(group_by(dat, fishTripId, vslFlgCtry, vslLenCls, gearType), no_area = length(unique(area)), tons = sum(landWt / 1000))
+area_trip_sum <- summarise(group_by(area_trip, vslFlgCtry, vslLenCls, no_area, gearType), no_trips = length(unique(fishTripId)), tons = sum(tons))
+
+ggplot(area_trip_sum, aes(x = no_area, y = no_trips, fill = vslFlgCtry)) +
+  geom_bar(stat = "identity") +
+  facet_grid(gearType~vslLenCls, scales = "free") +
+  scale_fill_manual(values = ddc.col)
+  
+
+ggplot(area_trip_sum, aes(x = no_area, y = tons, fill = vslFlgCtry)) +
+  geom_bar(stat = "identity") +
+  facet_grid(gearType~vslLenCls, scales = "free") +
+  scale_fill_manual(values = ddc.col)
+
+```
+
+```{r}
+
+dat <- mutate(dat, month = month(landDate))
+
+dat_2 <- summarise(group_by(dat, vslFlgCtry, stock, month), tons = sum(landWt / 1000))
+
+ggplot(dat_2, aes(x = month, y = tons, fill = vslFlgCtry)) +
+  geom_bar(stat = "identity") +
+  facet_grid(~stock, scales = "free") +
+  scale_fill_manual(values = ddc.col)
+  
+
+ggplot(area_trip_sum, aes(x = no_area, y = tons, fill = vslFlgCtry)) +
+  geom_bar(stat = "identity") +
+  facet_grid(gearType~vslLenCls, scales = "free") +
+  scale_fill_manual(values = ddc.col)
+```
+

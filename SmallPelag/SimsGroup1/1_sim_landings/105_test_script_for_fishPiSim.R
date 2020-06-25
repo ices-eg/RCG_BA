@@ -1,66 +1,72 @@
-
-
-# Script for testing the fishPiSim package - this simulates harbour sampling - the script requires two input files, one with
-#  scenario setting and one with specific about the sampling units (in this case port) and inclusion in different sampling frames, 
-#  these will be create with script 104_.
-#  Original test script and an example of the input files can be found in the fishPiSim package https://github.com/ices-tools-dev/FishPi2/tree/master/WP3
-
-# Kirsten Birch Håkansson, DTU Aqua
-#   v1: 20200623 - Just a more or less random setup - not using the input files
-
+# Code to run the fishPi2 WP3 simulations for the North Sea case study
 
 #--------------------------------------------------
 # Set-up
 #--------------------------------------------------
 # Set path - PUT YOUR OWN PATHS HERE !!!
-path.data <- "Q:/dfad/users/kibi/data/RCG/from_share_point/"
+path.data <-"X:/fishPi2/simulation code/fishPiSim package/"
 setwd(path.data)
 
 # load the libraries and functions
 library(fishPiSim)
 library(survey)
-lengthUnique <- function(x){length(unique(x))}
+lengthUnique <-function(x){length(unique(x))}
 
 # SAVE LOCATIONS - PUT YOUR OWN PATHS HERE !!!
 # location for saved simulation files
-simSaveLoc <- "Q:/mynd/kibi/projects_wks_wgs_rcgs/ISSG_small_pelagics_in_the_Baltic/gits/RCG_BA/SmallPelag/SimsGroup1/1_sim_landings/output/test/"
+simSaveLoc <- "X:/fishPi2/simulation output/"
 # location for saved simulation plots
-plotSaveLoc <- "Q:/mynd/kibi/projects_wks_wgs_rcgs/ISSG_small_pelagics_in_the_Baltic/gits/RCG_BA/SmallPelag/SimsGroup1/1_sim_landings/output/test/"
+plotSaveLoc <- "X:/fishPi2/simulation plots and tables output/Plots/"
 # location for saved simulation tables?
-tableSaveLoc <- "Q:/mynd/kibi/projects_wks_wgs_rcgs/ISSG_small_pelagics_in_the_Baltic/gits/RCG_BA/SmallPelag/SimsGroup1/1_sim_landings/output/test/"
+tableSaveLoc <- "X:/fishPi2/simulation plots and tables output/Tables Summary/"
 
 # Definitions of countries, species, areas, and other definitions of interest
-ctryOfInterest <- c("DEU", "DNK", "EST", "FIN", "LTU", "LVA", "POL", "SWE")
-#widerNSea <- c("27.7.d" , "27.4.a" ,"27.4.b", "27.4.c", "27.3.a.20", "27.3.a.21", "27.3.a")
-fishOfInterest <- c("SPR", "HER")
-#demISSCAAP <- c(31:34)
+ctryOfInterest <-c("BEL","DEU","DNK","FRA","GBE","GBS","NLD","SWE")
+widerNSea <- c("27.7.d" , "27.4.a" ,"27.4.b", "27.4.c", "27.3.a.20", "27.3.a.21", "27.3.a")
+fishOfInterest <- c("PLE","POK","COD","HAD","SOL","WHG","HKE","ANF", "TUR","GUU","DAB","MUR","LEM","LIN","BLL","FLE","GUG","POL","WIT")
+demISSCAAP <- c(31:34)
 
 # What population are we sampling from ?
 
-dat <- readRDS("data_prepared_minimized_for_fishPi2_test.rsd")
+load("X:/fishPi2/simulation code/fishPiSim package/testData.rData")
+testData <- testData[!is.na(testData$landCtry),]
 
 # Create the dataframe xx
-xx <- dat
+xx <- testData
+# If required, adjust gear, species and landCtry codes:
+# Simplify gears
+xx$foCatReg <- xx$foCatEu6
+xx$foCatReg <- gsub("OTB","OTC",xx$foCatReg)
+xx$foCatReg <- gsub("PTB","OTC",xx$foCatReg)
+xx$foCatReg <- gsub("OTT","OTC",xx$foCatReg)
+xx$foCatReg[!(substr(xx$foCatReg,1,3) %in% c("OTC","TBB","SSC","GNS","SDN","GTR"))] <- "MIS_MIS_0_0_0"
+# group subspecies
+xx$sppReg <- xx$sppFAO
+xx$sppReg[xx$sppFAO == "MNZ" |xx$sppFAO == "MON" |xx$sppFAO == "ANK"] <- "ANF"
+xx$sppReg[xx$sppFAO == "MEG" |xx$sppFAO == "LBD" ] <- "LEZ"
+# group sepcies not of interest
+xx$sppReg[!(xx$sppFAO %in% fishOfInterest)] <- "ZZZ"
+# move GBW to GBE
+xx$landCtry[xx$landCtry =="GBW"] <- "GBE"
+xx$vslFlgCtry[xx$vslFlgCtry =="WLS"] <- "ENG"
 
-if (!is.null(xx)) {
-  rm(dat)
-  gc()
-}
+if(!is.null(xx)){rm(testData)
+gc()}
 
 #--------------------------------------------------
 # Set-up variables for stratification
 #--------------------------------------------------
 
 # read in the port sampling frame:
-# portFrame <- read.csv(file=paste("PortFrame_example.csv")) # using the 2015 port allocations
-# names(portFrame)
+portFrame <-read.csv(file=paste("PortFrame_example.csv")) # using the 2015 port allocations
+names(portFrame)
 
 # It may be necessary to create new variable to be able to create the required stratification.
 # This variable can then be applied in the "getStratum" function
 # e.g. one option is to sample all minor ports without being stratified  by country. So we would make a new variable:
-#xx$landLocType <- portType(xx, portAllocation = "majorPorts95", portFrameFile = portFrame)
+xx$landLocType <- portType(xx, portAllocation = "majorPorts95", portFrameFile = portFrame)
 xx$newStrata <- xx$landCtry
-#xx$newStrata[xx$landLocType == "minor"] <- "GroupedCtryminor"
+xx$newStrata[xx$landLocType == "minor"] <- "GroupedCtryminor"
 table(xx$newStrata)
 
 #--------------------------------------------------
@@ -77,58 +83,58 @@ nsim <- 3
 scenario <- "test"
 
 # If using portFrame, which pre-set port allocation do you want to use?
-#portAllocation <- "majorPorts95"
+portAllocation <- "majorPorts95"
 # or do you want to use the current sampling settings?
 #portAllocation <- "sampNow"
 # or do you want to create new port allocations?
 #portAllocation <- "new"       # SET NEW PORT ALLOCATION SETTINGS in  the 'createPortAllocations' function below
 
 # What is the total effort
-totalEffort <-  600
-minorEffortAllocation <- 1
+totalEffort <-  711
+minorEffortAllocation <- 4
 
 sampleForeignVessels = TRUE
 
 ################## If READING AN INPUT FILE to input the scenario settings:
 
-# simInputFile <-read.csv(file=paste("simulationInputFile_example.csv"))
-# 
-# scenarioNames <- as.character(simInputFile$scenarioName)
-# scenarioNames
-# 
-# # do you want to run this a a loop?
-# for(i in 1:length(scenarioNames)){
+simInputFile <-read.csv(file=paste("simulationInputFile_example.csv"))
+
+scenarioNames <- as.character(simInputFile$scenarioName)
+scenarioNames
+
+# do you want to run this a a loop?
+for(i in 1:length(scenarioNames)){
   rm(calcs,myData,myResObj,results)
   gc()
 
   # get the scenarion settings from the simInputFile, to select  a single entry from simInputFile use i=1
-  scenario <- "test"  #scenarioNames[i]
-  totalEffort <- 600  #simInputFile$totalEffort[i]
-  minorEffortAllocation <- 1 #as.integer(simInputFile$minorEffortAllocation[i])
-  sampleForeignVessels <- T #simInputFile$sampleForeignVessels[i]
-  portAllocation <- all  #as.character(simInputFile$portAllocation[i])
+  scenario <- scenarioNames[i]
+  totalEffort <- simInputFile$totalEffort[i]
+  minorEffortAllocation <- as.integer(simInputFile$minorEffortAllocation[i])
+  sampleForeignVessels <- simInputFile$sampleForeignVessels[i]
+  portAllocation <- as.character(simInputFile$portAllocation[i])
   if(portAllocation == "new") {
     newAllocationPercentMajor <- simInputFile$newAllocationPercentMajor[i]
     newAllocationBy <- as.character(simInputFile$newAllocationBy[i])
     newAllocationAreaSelection <- unlist(strsplit(as.character(simInputFile$newAllocationAreaSelection[i]),","))
     newAllocationISSCAAPSelection <- as.integer(unlist(strsplit(as.character(simInputFile$newAllocationISSCAAPSelection[i]),",")))
   }
-  strataType <- "stratified" #as.character(simInputFile$strataType[i])
-  stratification <- "landCtry" #unlist(strsplit(as.character(simInputFile$stratification[i]),","))
-  samplingExclusions <- "" #unlist(strsplit(as.character(simInputFile$samplingExclusions[i]),","))
-  allocateEffortBy <- "landWt" #as.character(simInputFile$allocateEffortBy[i])
-  psu <-  "siteXday"  #as.character(simInputFile$psu[i])
-  psuThreshold <- 0 #simInputFile$psuThreshold[i]
-  fishOfInterest <- fishOfInteres #unlist(strsplit(as.character(simInputFile$fishOfInterest[i]),","))
-  ctryOfInterest <- ctryOfInterest #unlist(strsplit(as.character(simInputFile$ctryOfInterest[i]),","))
-  #widerNSea <- unlist(strsplit(as.character(simInputFile$widerNSea[i]),","))
+  strataType <- as.character(simInputFile$strataType[i])
+  stratification <- unlist(strsplit(as.character(simInputFile$stratification[i]),","))
+  samplingExclusions <- unlist(strsplit(as.character(simInputFile$samplingExclusions[i]),","))
+  allocateEffortBy <- as.character(simInputFile$allocateEffortBy[i])
+  psu <- as.character(simInputFile$psu[i])
+  psuThreshold <- simInputFile$psuThreshold[i]
+  fishOfInterest <- unlist(strsplit(as.character(simInputFile$fishOfInterest[i]),","))
+  ctryOfInterest <- unlist(strsplit(as.character(simInputFile$ctryOfInterest[i]),","))
+  widerNSea <- unlist(strsplit(as.character(simInputFile$widerNSea[i]),","))
 
 
 
 cat(paste("\n\n\n\nStarting set-up of new simulation: ", scenario, "\n"))
 
 # define your domain:
-xx$domain <- paste(xx$stock,substr(xx$area,4,nchar(xx$area)),substr(xx$foCatReg,1,7),sep="-")
+xx$domain <- paste(xx$sppReg,substr(xx$area,4,nchar(xx$area)),substr(xx$foCatReg,1,7),sep="-")
 
 # Define your PSU:
 myPSU <-paste(xx$landLoc,xx$landDate,sep="_") # the psu is site X day for the on-shore sampling
@@ -142,17 +148,17 @@ portFrame$newPortAllocation <-  createPortAllocations(xx, percentMajor = newAllo
 }
 
 # Add port type to the dataset:
-#xx$landLocType <- portType(xx, portAllocation = portAllocation, portFrameFile = portFrame)
+xx$landLocType <- portType(xx, portAllocation = portAllocation, portFrameFile = portFrame)
 
 # For sampNow
-#xx$sampledNow <-portFrame$sampled[match(xx$landLoc,portFrame$loCode)]
+xx$sampledNow <-portFrame$sampled[match(xx$landLoc,portFrame$loCode)]
 
 # Create strata:
 myStratum <- getStratum(xx,stratification = stratification, samplingExclusions = samplingExclusions)
 
 # Create Effort allocation:
-myEffort <- 600 #getEffort(xx, strata = myStratum, strataType = strataType,  allocateEffortBy = allocateEffortBy,
-                      #PSU = myPSU, totalEffort = totalEffort, psuThreshold = psuThreshold, minorEffortAllocation = minorEffortAllocation)
+myEffort <- getEffort(xx, strata = myStratum, strataType = strataType,  allocateEffortBy = allocateEffortBy,
+                      PSU = myPSU, totalEffort = totalEffort, psuThreshold = psuThreshold, minorEffortAllocation = minorEffortAllocation)
 
 # The following code is specific to a single scenario,
 # but also illustrates how different percentages of the total effort can be applied to specific strata
@@ -183,8 +189,6 @@ print(myEffort)
 if(length(myEffort)!=lengthUnique(myStratum)){
   myStratum[!myStratum %in% names(myEffort)] <- "none"
 }
-
-names(myEffort) <- "none"
 
 # setUpData sets up the data set:
 myData <-setUpData(xx, psu="siteXday", psuStratum = myStratum, stratumEffort = myEffort, domains=c("domain"))
@@ -559,7 +563,7 @@ write.table(domCtryOutput,file = paste(tableSaveLoc,"/Sim output Work Plan/Table
 
 print("end")
 
-#}
+}
 
 
 
