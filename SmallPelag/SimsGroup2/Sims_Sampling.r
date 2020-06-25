@@ -2,7 +2,8 @@
 # Small Pelagic Simulation Script - Subgroup 1
 # ====================
 
-   
+	# 2020-06-25: added vessel-level refusals
+  
    rm(list=ls())		
     
 	# read packages [not sure all are used but...]
@@ -56,9 +57,29 @@
 
 
 
-	# to be defined by user: withinTripSampUnit
-		# this is what will be sampled withinTrip [alternative to select depend on available data]
+	# to be defined by user: 
+		
+		# withinTripSampUnit
+			# this is what will be sampled withinTrip [alternative to select depend on available data]
 			withinTripSampUnit <- "haulId" # "fishdayId"
+		
+		# refusals
+			# the way refusals are incorporated is by removing vessels after sampling has happened
+			# define: typeRefusals and refusals
+				# if you choose "None" there is no further specification
+				# if you choose "percent", adjust percent below [random vessels representing min x% will be highlighted in final results]
+				# if you choose "vessels", select vessels below [specific vessels will be highlighted in final results]
+				typeRefusals<-"percent" # alternatives: "none", "percent", "vessels"
+				if (typeRefusals=="none") refusals<-"none"
+				if (typeRefusals=="percent") refusals<-20
+				if (typeRefusals=="vessels") refusals<-c("XYZ00441" "XYZ00743")
+			
+			# updates refusal if typeRefusals=="percent"
+				if (typeRefusals=="percent") refusals<-sample(target_list, size=ceiling(length(target_list)*refusals/100))
+			
+			# displays vessels that refused
+				refusals
+			
 			
 	# creates withinTripSampUnit column
 		testData$withinTripSampUnit<-testData[[withinTripSampUnit]]
@@ -92,7 +113,7 @@
 			dt0 <- testData
 	
             #n vsl vessels per week, week as strata
-				n_vessels = 1
+				n_vessels = 5
 					# quota sampling 
 						# if FALSE - contacts n_vessels (some many not be fishing)
 						# if TRUE - contacts vessels until n_vessels are found to be fishing
@@ -261,11 +282,13 @@
 			# adds call week
 				dt_sample$callWeek<-dt_sample$depWeek-1
      
-
+			# highlight refusals
+				dt_sample$refusal<-FALSE
+				dt_sample$refusal[dt_sample$vslId %in% refusals]<-TRUE
 	 
 					# RESULT: No successful vessels per calling week
-					dt_sample[, list(n_vsl=length(unique(vslId))), callWeek]
-					dt_sample[area %in% c("27.3.d.24","27.3.d.25","27.3.d.26","27.3.d.27","27.3.d.28.2","27.3.d.29"), list(n_vsl=length(unique(vslId))), callWeek]
+					dt_sample[, list(n_contact=n_vessels, n_vsl_fishing=length(unique(vslId)), n_vsl_final=length(unique(vslId[refusal==FALSE]))), callWeek]
+					dt_sample[area %in% c("27.3.d.24","27.3.d.25","27.3.d.26","27.3.d.27","27.3.d.28.2","27.3.d.29"), list(n_contact=n_vessels, n_vsl_fishing=length(unique(vslId)), n_vsl_final=length(unique(vslId[refusal==FALSE]))), callWeek]
 		
 			# adds expected weight (wtInBox) and number (nInBox) of fish in box
 					
@@ -294,8 +317,8 @@
 					dt_sample$nInBoxSampled<-dt_sample$nInBox
 					dt_sample$nInBoxSampled[dt_sample$nInBoxSampled>50]<-50
 			
-			# creates useful object (restricts to target area)
-				dt_sample2<-droplevels(dt_sample[dt_sample$area %in% c("27.3.d.24","27.3.d.25","27.3.d.26","27.3.d.27","27.3.d.28.2","27.3.d.29"),])
+			# creates useful object (restricts to target area & non-refusals)
+				dt_sample2<-droplevels(dt_sample[dt_sample$area %in% c("27.3.d.24","27.3.d.25","27.3.d.26","27.3.d.27","27.3.d.28.2","27.3.d.29") & dt_sample$refusal==FALSE,])
 					
 				# RESULT: No samples per area, quarter and spp
 					#table(dt_sample$area, dt_sample$landQuarter, dt_sample$sppName)
@@ -340,8 +363,8 @@
 				})
 				dt_sample_subsampled<-rbindlist(ls2)
 
-			# creates useful object (restricts to target area)
-				dt_sample_subsampled2<-droplevels(dt_sample_subsampled[dt_sample_subsampled$area %in% c("27.3.d.24","27.3.d.25","27.3.d.26","27.3.d.27","27.3.d.28.2","27.3.d.29"),])
+			# creates useful object (restricts to target area & non-refusals)
+				dt_sample_subsampled2<-droplevels(dt_sample_subsampled[dt_sample_subsampled$area %in% c("27.3.d.24","27.3.d.25","27.3.d.26","27.3.d.27","27.3.d.28.2","27.3.d.29") & dt_sample$refusal==FALSE,])
 
 				# RESULT: No samples per area, quarter and spp
 					#table(dt_sample2$area, dt_sample2$landQuarter, dt_sample2$sppName)
