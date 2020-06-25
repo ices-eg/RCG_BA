@@ -1,7 +1,7 @@
 ---
 title: "008_compare_magic_numbers"
 author: "Kirsten Birch Håkansson, DTU Aqua"
-date: "06/06/2019"
+date: \today
 output: pdf_document
 ---
 
@@ -60,7 +60,9 @@ trhh_age <- inner_join(tr_age, hh_age)
 
 # AWG figures
 
-awg <- read_xlsx("Q:/mynd/RCM/RCG_BA/SamplingPlans/SmallPelagics/ref/awg_figures_2017.xlsx", sheet = 1)
+
+
+awg <- read_xlsx("Q:/mynd/kibi/projects_wks_wgs_rcgs/ISSG_small_pelagics_in_the_Baltic/gits/RCG_BA/SmallPelag/DataPrep/ref/awg_figures_2017.xlsx", sheet = 1)
 
 # Correct countries
 
