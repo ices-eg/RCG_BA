@@ -413,6 +413,8 @@
 
 				# adds aggregated results
 					res[[1]][["aggRes"]]<-dt_sample2[, list(vslIdCount = length(unique(vslId)), fishTripIdCount=length(unique(fishTripId)), haulIdCount=length(unique(withinTripSampUnit)), fishInBoxTotal=sum(nInBox, na.rm=T), fishInBoxSampled=sum(nInBoxSampled, na.rm=T)), c('landQuarter', 'sppName', 'area', 'rect')] [order(landQuarter,sppName,area, rect),]
+					res[[1]][["aggResArea"]]<-dt_sample2[, list(vslIdCount = length(unique(vslId)), fishTripIdCount=length(unique(fishTripId)), haulIdCount=length(unique(withinTripSampUnit)), fishInBoxTotal=sum(nInBox, na.rm=T), fishInBoxSampled=sum(nInBoxSampled, na.rm=T)), c('landQuarter', 'sppName', 'area')] [order(landQuarter,sppName,area),]
+					res[[1]][["aggResRect"]]<-dt_sample2[, list(vslIdCount = length(unique(vslId)), fishTripIdCount=length(unique(fishTripId)), haulIdCount=length(unique(withinTripSampUnit)), fishInBoxTotal=sum(nInBox, na.rm=T), fishInBoxSampled=sum(nInBoxSampled, na.rm=T)), c('landQuarter', 'sppName', 'rect')] [order(landQuarter,sppName,rect),]
 				
 			
 
@@ -420,7 +422,7 @@
 	# Maps
 	# ===========================	
 
-	# @Marta: idea is to plot res[[1]][["aggRes"]]
+	# @Marta: idea is to plot res[[1]][["aggResRect"]], res[[1]][["aggResArea"]]
 			
 	# ===========================
 	# comparing with minimum goals
