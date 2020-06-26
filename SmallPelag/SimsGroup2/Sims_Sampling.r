@@ -1,5 +1,5 @@
 # ====================
-# Small Pelagic Simulation Script - Subgroup 1
+# Small Pelagic Simulation Script - Subgroup 2
 # ====================
 
 	# 2020-06-25: 
@@ -408,18 +408,19 @@
 					res[[1]][["fishInBoxSampled_per_AreaQuarterSpp"]]<-tapply(dt_sample2$nInBoxSampled, list(dt_sample2$area, dt_sample2$landQuarter, dt_sample2$sppName), sum)
 					#apply(tapply(dt_sample2$nInBoxSampled, list(dt_sample2$area, dt_sample2$landQuarter, dt_sample2$sppName), sum, na.rm=T), c(1,3), sum, na.rm=T)
 
-				# adds full dataframe
-					res[[1]][["fullDataFrame"]]<-dt_sample2
+				# adds full results
+					res[[1]][["fullRes"]]<-dt_sample2
 
-
-
+				# adds aggregated results
+					res[[1]][["aggRes"]]<-dt_sample2[, list(vslIdCount = length(unique(vslId)), fishTripIdCount=length(unique(fishTripId)), haulIdCount=length(unique(withinTripSampUnit)), fishInBoxTotal=sum(nInBox, na.rm=T), fishInBoxSampled=sum(nInBoxSampled, na.rm=T)), c('landQuarter', 'sppName', 'area', 'rect')] [order(landQuarter,sppName,area, rect),]
+				
+			
 
 	# ===========================
 	# Maps
 	# ===========================	
 
-	# @Marta: idea is to plot res[[1]][["fullDataFrame"]]
-					
+	# @Marta: idea is to plot res[[1]][["aggRes"]]
 			
 	# ===========================
 	# comparing with minimum goals
