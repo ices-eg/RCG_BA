@@ -9,7 +9,10 @@
 		# streamlined main settings: moved and highlighted in beginning of script
 		# streamlined results - now only final results (if specified, subsampling per area is  applied ahead of final result)
 		# fixed bug: eliminated nuisance vslId.x in dt_sample
-  
+	# 2020-06-26
+		# added full results (dt_sample2) to res object (useful for mapping)
+		
+		
    rm(list=ls())		
     
 	# read packages [not sure all are used but...]
@@ -86,7 +89,7 @@
 				typeRefusals<-"percent" # alternatives: "none", "percent", "vessels"
 				if (typeRefusals=="none") refusals<-"none"
 				if (typeRefusals=="percent") refusals<-20
-				if (typeRefusals=="vessels") refusals<-c("XYZ00441" "XYZ00743")
+				if (typeRefusals=="vessels") refusals<-c("XYZ00441","XYZ00743")
 	
 	# ==========================
 	# ==========================	
@@ -371,7 +374,7 @@
 				}
 				
 			# creates results object
-				aux_resNames<-c("haulId_per_AreaQuarterSpp","haulId_per_RectQuarterSpp","fishTripId_per_AreaQuarterSpp","vslId_per_AreaQuarterSpp","fishInBoxTotal_per_AreaQuarterSpp","fishInBoxSampled_per_AreaQuarterSpp")
+				aux_resNames<-c("haulId_per_AreaQuarterSpp","haulId_per_RectQuarterSpp","fishTripId_per_AreaQuarterSpp","vslId_per_AreaQuarterSpp","fishInBoxTotal_per_AreaQuarterSpp","fishInBoxSampled_per_AreaQuarterSpp","fullDataFrame")
 				
 				res <- sapply(1:n_sims, function(x) NULL)
 				for (i in 1:n_sims) {res[[i]]<-sapply(aux_resNames, function(x) NULL)}
@@ -402,12 +405,17 @@
 					res[[1]][["fishInBoxSampled_per_AreaQuarterSpp"]]<-tapply(dt_sample2$nInBoxSampled, list(dt_sample2$area, dt_sample2$landQuarter, dt_sample2$sppName), sum)
 					#apply(tapply(dt_sample2$nInBoxSampled, list(dt_sample2$area, dt_sample2$landQuarter, dt_sample2$sppName), sum, na.rm=T), c(1,3), sum, na.rm=T)
 
+				# adds full dataframe
+					res[[1]][["fullDataFrame"]]<-dt_sample2
+
+
+
 
 	# ===========================
 	# Maps
 	# ===========================	
 
-
+	# @Marta: idea is to plot res[[1]][["fullDataFrame"]]
 					
 			
 	# ===========================
