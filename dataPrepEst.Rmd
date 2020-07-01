@@ -1,0 +1,137 @@
+---
+title: "Data preparation from Estonian raw data"
+author: "Richard Meitern"
+date: "6/20/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+The aim of this document is to generate the correct RCG data format from Estonian raw database tables. It is not a single script but rather an executabe code because the Estonian database table structure has not been constan between years. RMarkdown format is more convinient for manual checking of the conversion proccess until popper tests and checks arein place.
+
+```{r}
+dataDir <- "../privateData/"
+```
+
+
+In the end the script produces final data into the folder `r dataDir` this directory should not be tracked by git. To be sure that nobody accidentally changes the .gitignore its kept out of the repro.
+
+
+# Raw data import
+
+```{r}
+#lets look at the expected format first
+load("SmallPelag/SimsGroup2/testData.Rdata")
+colnames(testData)
+```
+
+```{r}
+#load the import functions
+functionDirectory <- "./SmallPelag/SimsGroup2/functions/"
+source(paste0(functionDirectory,'importOfficialDataEST.R'))
+source(paste0(functionDirectory,'utils.R'))
+source(paste0(functionDirectory,'VD_import.R'))
+source(paste0(functionDirectory,'RCG_import.R'))
+source(paste0(functionDirectory,'speciesNameMapings.R'))
+```
+
+
+## load the tables  (FAR, LAN, DEP, RET)
+
+```{r}
+#set the year for import functions 
+year <- 2019
+```
+
+
+```{r}
+#VN table is the Vessel name table
+shipsFile <- paste0(dataDir,"ships.xlsx")
+VN <- file2VN(shipsFile)
+VD <- file2VD(shipsFile, year)
+#ports table maps port to their IDs
+portsFile <- paste0(dataDir,"ports.xlsx")
+ports <- readxl::read_excel(portsFile, 
+    col_types = c("text", "text"))
+```
+
+```{r}
+farRaw <- importNationalLandings(paste0(dataDir,"traalpyygid_est.xlsx"), year, VN, ports,
+                                 sheet = "FAR")
+head(farRaw)
+```
+
+
+```{r}
+#check the values
+unique(farRaw$speciesCode)
+unique(farRaw$zone)
+unique(farRaw$vessel)
+```
+
+```{r}
+#keep only sprat and herring catches
+farRaw <- farRaw[farRaw$speciesCode %in% c("SPR", "HER"),]
+```
+
+
+
+```{r}
+lanRaw <- importNationalLandings(paste0(dataDir,"traalpyygid_est.xlsx"), year, VN,
+                                 sheet = "LAN")
+head(lanRaw)
+```
+
+```{r}
+#addportCodes where possible
+#lanRaw <- merge(lanRaw, ports[,c("harbor", "port_code")],
+#                by.x = "portName", by.y = "harbor", all.x = TRUE)
+#highlight missing ports
+#warning(missingVals(lanRaw, "port_code", "portName", T))
+```
+
+
+```{r}
+#add landing location to far using tripcode 
+dep <- loadExcelSheetData(paste0(dataDir,"traalpyygid_est.xlsx"), year, ports, "DEP")
+rtp <- loadExcelSheetData(paste0(dataDir,"traalpyygid_est.xlsx"), year, ports, "RTP")
+```
+
+
+
+
+```{r}
+rcgEE2019 <- far2rcg(year, farRaw, dep, rtp, VD, "EE")
+head(rcgEE2019)
+
+```
+
+
+# Write data to file
+
+```{r}
+save(rcgEE2019, file = paste0(dataDir, "rcgEE2019.Rdata"))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
