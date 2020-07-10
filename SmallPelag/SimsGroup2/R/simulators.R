@@ -1,24 +1,33 @@
 #' Main Simulation Function
 #'
-#' @param data 
-#' @param sppSelectMethod 
-#' @param refusals 
-#' @param withinTripSampUnit 
-#' @param withinTripSampMethod 
-#' @param target_spp 
-#' @param target_vessels 
-#' @param sign_prop 
-#' @param subsampleHaulsPerArea 
-#' @param nHaulsMaxPerArea 
-#' @param keep_areas 
-#' @param n_sims 
-#' @param n_vessels 
-#' @param fill_quota 
+#' @param data the input data validated to have all needed columns
+#' @param sppSelectMethod  string with the sampling method name
+#'  currently the names include: "alternative_1", "alternative_2",
+#'  "alternative_3", "altrnative_4"
+#' @param refusals string, vector or numeric 
+#' @param withinTripSampUnit string default ("haulId") data column name 
+#' this is what will be sampled withinTrip, alternative: "fishdayId"
+#' @param withinTripSampMethod string default ("all_hauls")
+#'  alternatives: "first_haul", "last_haul", "srswor_haul"
+#' @param target_spp  vector of speces names to sample (default NULL) 
+#' if NULL samples all species
+#' @param target_vessels vector of vessel names to sample (default NULL) 
+#' if NULL samples all vessels
+#' @param sign_prop numeric(default 0.3) for aleternative 3
+#' @param subsampleHaulsPerArea logical (default TRUE) subsample hauls by ICES 
+#' subdivision	
+#' @param nHaulsMaxPerArea numeric (default 2)
+#' @param keep_areas vector of area names (default NULL) 
+#' if NULL all areas (ICES subdivisions) are kept
+#' @param n_sims numeric (default 1) how many simulations to run
+#' @param n_vessels numeric n-vessels per week, week as strata default(5)
+#' @param fill_quota logical quota sampling 
+#' if FALSE (default) - contacts n_vessels(some many not be fishing) 
+#' if TRUE - contacts vessels until n_vessels are found to be fishing
+#' @param print_tables logical shoud the simulation results be printed to screen 
 #'
-#' @return
+#' @return simulation results as a named list of data.tables
 #' @export
-#'
-#' @examples
 simulateSampling <- function(data,
                              sppSelectMethod,
                              refusals = "none",
@@ -30,7 +39,8 @@ simulateSampling <- function(data,
                              subsampleHaulsPerArea = TRUE,
                              nHaulsMaxPerArea=2,
                              keep_areas = NULL,
-                             n_sims=1, n_vessels=5, fill_quota=FALSE){
+                             n_sims=1, n_vessels=5, fill_quota=FALSE,
+                             print_tables = T){
 
   #set.seed(123)
   if(is.null(keep_areas)){
@@ -44,18 +54,12 @@ simulateSampling <- function(data,
   target_list <- target_vessels
   
   
+  #use the data table as it is faster thant data.frame 
+  #also data.table provides convinient subsetting
+  dt0 <- data.table::as.data.table(data)
   
-  dt0 <- as.data.table(data)
   
-  # nsims [do not change, this script is configured only for 1 simulation)
-  n_sims=n_sims
-  
-  #n vsl vessels per week, week as strata
-  n_vessels = n_vessels
-  # quota sampling 
-  # if FALSE - contacts n_vessels (some many not be fishing)
-  # if TRUE - contacts vessels until n_vessels are found to be fishing
-  fill_quota=fill_quota                                
+  #
   
   
   # start simulation ---------------------------------------------------------
@@ -74,8 +78,8 @@ simulateSampling <- function(data,
   
 
   #end simulation--------------------------------------------------------------
-  
-  aggregatedTables <- make_results(dt_sample, print_tables = T)
+  aggregatedTables <- aggregate_results_to_tables(dt_sample,
+                                                  print_tables = print_tables)
   
   #res <- generate_aggreagated_tables(dt_sample)
   
@@ -183,7 +187,7 @@ generateSample <- function(refusals,
   # take first trip departing next week
   for (i in 1:nrow(out))
   {
-    out$fishTripId[i]<-unique(dt0[depWeek==out$weektrip[i] & vslId==out$vslId[i],]$fishTripId)[1]
+    out$fishTripId[i]<-unique(dt0[dt0$depWeek==out$weektrip[i] & dt0$vslId==out$vslId[i],]$fishTripId)[1]
     #out$withinTripSampUnit[i]<-unique(dt0[fishTripId==out$fishTripId[i],]$withinTripSampUnit)[1]
   }
   if(fill_quota==TRUE) # takes a max of n_vessels
@@ -259,10 +263,10 @@ generateSample <- function(refusals,
         if (length(hauls)>subsamp2) z<-z[z$withinTripSampUnit %in% sample(hauls, size = subsamp2),]
         z
       })
-      x <- rbindlist(y2)
+      x <- data.table::rbindlist(y2)
       x									
     })
-    dt_sample2<-rbindlist(ls2)
+    dt_sample2<-data.table::rbindlist(ls2)
   }
   
   
@@ -279,46 +283,46 @@ generateSample <- function(refusals,
 #' @export
 #'
 #' @examples
-make_results <- function(dt, print_tables = T){
+aggregate_results_to_tables <- function(dt, print_tables = T){
   # creates results object
   res <- list()
   
-  
   # RESULT1a: No samples per area, quarter and spp
-  #table(dt_sample$area, dt_sample$landQuarter, dt_sample$sppName)
   name <- "haulId_per_AreaQuarterSpp"
-  res[[name]]<-sppCalcCI(name,dt,"year",length, c("area", "landQuarter"), print_tables)
+  res[[name]]<-sppCalcCI(dt,"year",length, c("area", "landQuarter"),
+                         print_tables, name = name)
   
   # RESULT1b: No samples per rectangle, quarter and spp
-  #table(dt_sample$area, dt_sample$landQuarter, dt_sample$sppName)
   name<-"haulId_per_RectQuarterSpp"
-  res[[name]]<-sppCalcCI(name, dt, "year",length, c("rect", "landQuarter"), print_tables)
+  res[[name]]<-sppCalcCI(dt, "year",length, c("rect", "landQuarter"),
+                         print_tables, name = name)
   
   # RESULT2: No trips per area, quarter and spp
   name<-"fishTripId_per_AreaQuarterSpp"
-  res[[name]]<-sppCalcCI(name, dt,"fishTripId", length, c("area", "landQuarter"), print_tables, T)
+  res[[name]]<-sppCalcCI(dt,"fishTripId", length, c("area", "landQuarter"),
+                         print_tables, name = name, getUnique = T)
   
   # RESULT3: No vessels per area, quarter and spp
-  #tapply(dt_sample$vslId, list(dt_sample$area, dt_sample$landQuarter, dt_sample$sppName), function(x) length(unique(x)))
   name<-"fishTripId_per_AreaQuarterSpp"
-  res[[name]]<-sppCalcCI(name, dt,"vslId", length, c("area", "landQuarter"), print_tables, T)
+  res[[name]]<-sppCalcCI(dt,"vslId", length, c("area", "landQuarter"),
+                         print_tables, name = name, getUnique = T)
   
   # RESULT4: No fish potentially available per area, quarter and spp				
-  #tapply(dt_sample$nInBox, list(dt_sample$area, dt_sample$landQuarter, dt_sample$sppName), sum)
   name<-"fishInBoxTotal_per_AreaQuarterSpp"
-  res[[name]]<-sppCalcCI(name, dt,"nInBox", sum, c("area", "landQuarter"), print_tables)
+  res[[name]]<-sppCalcCI(dt,"nInBox", sum, c("area", "landQuarter"),
+                         print_tables, name = name)
   
   # RESULT5: No fish potentially sampled per area, quarter and spp				
-  #tapply(dt_sample$nInBoxSampled, list(dt_sample$area, dt_sample$landQuarter, dt_sample$sppName), sum)
   name<-"fishInBoxSampled_per_AreaQuarterSpp"
-  res[[name]]<-sppCalcCI(name, dt,"nInBoxSampled", sum, c("area", "landQuarter"), print_tables) 
+  res[[name]]<-sppCalcCI(dt,"nInBoxSampled", sum, c("area", "landQuarter"),
+                         print_tables, name = name) 
   return(res)
 }
 
 
 generate_aggreagated_tables <- function(dt_sample){
   res <- list()
-  dt_sample2 <- data.table::as.data.table(dt_sample)
+  #dt_sample2 <- data.table::as.data.table(dt_sample)
     # adds aggregated results
   res[["aggRes"]]<-dt_sample2[, list(vslIdCount = length(unique(vslId)), fishTripIdCount=length(unique(fishTripId)), haulIdCount=length(unique(withinTripSampUnit)), fishInBoxTotal=sum(nInBox, na.rm=T), fishInBoxSampled=sum(nInBoxSampled, na.rm=T)), c('landQuarter', 'sppName', 'area', 'rect')] [order(landQuarter,sppName,area, rect),]
   res[["aggResArea"]]<-dt_sample2[, list(vslIdCount = length(unique(vslId)), fishTripIdCount=length(unique(fishTripId)), haulIdCount=length(unique(withinTripSampUnit)), fishInBoxTotal=sum(nInBox, na.rm=T), fishInBoxSampled=sum(nInBoxSampled, na.rm=T)), c('landQuarter', 'sppName', 'area')] [order(landQuarter,sppName,area),]
@@ -330,7 +334,9 @@ generate_aggreagated_tables <- function(dt_sample){
 
 select_haul <- function(dt0, out, withinTripSampUnit, withinTripSampMethod){
   # implements haul selection
-  aux<-unique(dt0[dt0$fishTripId %in% out$fishTripId,c("fishTripId", "withinTripSampUnit")][order(fishTripId,withinTripSampUnit),])
+  aux<-unique(dt0[dt0$fishTripId %in% out$fishTripId, 
+                  c("fishTripId", "withinTripSampUnit")]
+              [order(dt0$fishTripId, dt0$withinTripSampUnit),])
   if(withinTripSampMethod == "all_hauls") {
     selected_haulId <- aux$withinTripSampUnit
     }
@@ -350,40 +356,39 @@ select_haul <- function(dt0, out, withinTripSampUnit, withinTripSampMethod){
 
 #' Aggreagate Results and Calculate CI
 #'
-#' @param name 
-#' @param res 
-#' @param aggVar 
-#' @param aggFun 
-#' @param selectVars 
-#' @param print_results 
-#' @param getUnique 
+#' @param name - string name for a print table caption
+#' @param res  - list of data tables use for calcuation
+#' @param aggVar - column nname for aggreagation
+#' @param aggFun - function to used for agregation default lenght can also use 
+#' sum and others
+#' @param selectVars - values to aggregate by
+#' @param print_results - should the results be also printed
+#' @param getUnique  - should the unique aggVar selectVarsa combination be 
+#' found before agregation (important for getting vesselcounts and tripcounts)
 #'
-#' @return
+#' @return an aggregated data.table in the long format
 #' @export
 #'
-#' @examples
-sppCalcCI <- function(name, res, aggVar, aggFun = length,
+sppCalcCI <- function(res, aggVar, aggFun = length,
                       selectVars= c("area","landQuarter"),
-                      print_results = T, getUnique = F){
+                      print_results = T, getUnique = F, name =""){
   
-  if(length(selectVars)!=2){stop("Not implemented")}
   
-  aggFormula <- as.formula(paste0(aggVar, " ~ sppName + ",
-                                  paste0(selectVars, collapse = " + ")))
+  aggBy<- c(selectVars, "sppName")
   
-  x<-lapply(res, function(x, aggFormula, aggFun, getUnique){
+  x<-lapply(res, function(x, aggBy, aggFun, getUnique){
     if(getUnique){
-      x<-as.data.frame(x, stringsAsFactors = F)
-      x<-x[!duplicated(x[c(selectVars, aggVar)]),]
+      x<-x[!duplicated(x[,c(..selectVars, ..aggVar)])] 
     }
-    tbl<-aggregate( aggFormula, x, FUN=aggFun)
-    return(tbl)
-  }, aggFormula, aggFun, getUnique)
-  y<-as.data.frame(rbindlist(x), stringsAsFactors = F)
+    x[, aggFun(eval(parse(text=aggVar))), by=aggBy]
+  }, aggBy, aggFun, getUnique)
+  
+  y<-data.table::rbindlist(x)
   n<-length(x)
-  y$avg <- ave(y[[aggVar]],  y[[selectVars[1]]], y[[selectVars[2]]], y$sppName)
-  y$sd <- ave(y[[aggVar]], y[[selectVars[1]]], y[[selectVars[2]]], y$sppName, FUN = median)
-  y<-y[!duplicated(y[c(selectVars, "sppName")]), ]
+  
+  y <-y[, list(avg=mean(V1), sd = sd(V1)), by=aggBy]
+  #the sample functtion expectedly produces a normal distribution
+  #TODO check with somebody if it is the case
   y$error <- qnorm(0.975)*y$sd/sqrt(n)
   y$CIupper <- round(y$avg + y$error, 1)
   y$CIlower <- round(y$avg - y$error, 1)
@@ -391,12 +396,11 @@ sppCalcCI <- function(name, res, aggVar, aggFun = length,
   
   if(print_results){
     species <- unique(y$sppName)
-    
     for(spp in species){
-      y$Q <- y$sample
-      tbl <- y[y$sppName == spp, c(selectVars,"Q")]
-      tbl<-stats::reshape(tbl, idvar=selectVars[1], timevar = selectVars[2], direction = "wide")
-      print(knitr::kable(tbl,caption = paste(name, spp), label=spp ))
+      tbl <- y[y$sppName == spp, ]
+      castFormula <- as.formula(paste(selectVars[1] ,"~", selectVars[2]))
+      tbl <- data.table::dcast(tbl, castFormula, value.var="sample", drop=c(F,F))
+      print(knitr::kable(tbl, caption = paste(name, spp), label=spp ))
     }
     
   }
@@ -413,7 +417,7 @@ select_spp_sampling_method <- function(dt0agg,
                                        target_spp = NULL){
   # pulling original data / implements species sampling alternatives
   
-  #this  method_last_letter should be removed later when methods have proper names
+  #method_last_letter should be removed later when methods have proper names
   method_last_letter <- substr(sppSelectMethod,
                                nchar(sppSelectMethod),
                                nchar(sppSelectMethod))
@@ -431,11 +435,18 @@ select_spp_sampling_method <- function(dt0agg,
     }
     
   }
+  agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId',
+                   'withinTripSampUnit','depDate','depLoc','arrDate',
+                   'arrLoc','landDate','landLoc','rect','area','foCatEu6',
+                   'sppCode','sppName','stockCode','depQuarter','depMonth',
+                   'depWeek','arrQuarter','arrMonth','arrWeek','landQuarter',
+                   'landMonth','landWeek') 
   
+ 
+  dt0agg<-dt0agg[, list(landWt=sum(dt0agg$landWt)), agg_columns]
+ 
   if(sppSelectMethod=="alternative_1")
   {		
-    agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','withinTripSampUnit','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
-    dt0agg<-dt0agg[, list(landWt=sum(landWt)),agg_columns]
     selected_sample<-dt0agg[withinTripSampUnit %in% selected_haulId,][,list(sppName=sppName[which(landWt==max(landWt))]), list(withinTripSampUnit)]
     
     dt_sample <- dt0agg[paste(withinTripSampUnit, sppName) %in% paste(selected_sample$withinTripSampUnit, selected_sample$sppName),]
@@ -457,17 +468,15 @@ select_spp_sampling_method <- function(dt0agg,
   
   if(sppSelectMethod=="alternative_2")
   {									
-    agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','withinTripSampUnit','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
-    dt0agg<-dt0agg[, list(landWt=sum(landWt)),agg_columns]
+    
     dt_sample <- dt0agg[withinTripSampUnit %in% selected_haulId, ]
   }
   
   
   if(sppSelectMethod=="alternative_3")
   {						
-    agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','withinTripSampUnit','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
-    dt0agg<-dt0agg[, list(landWt=sum(landWt)),agg_columns]
-    dt_sample <- dt0agg[withinTripSampUnit %in% selected_haulId, ]
+      
+    dt_sample <- dt0agg[dt0agg$withinTripSampUnit %in% selected_haulId, ]
     # trimming down when rare
     
     aux <- tapply(dt_sample$landWt, list(dt_sample$withinTripSampUnit,dt_sample$sppName), sum)
@@ -483,8 +492,8 @@ select_spp_sampling_method <- function(dt0agg,
   
   if(sppSelectMethod=="alternative_4")
   {	
-    agg_columns <- c('year','vslFlgCtry','vslId','vslLenCls','fishTripId','withinTripSampUnit','depDate','depLoc','arrDate','arrLoc','landDate','landLoc','rect','area','foCatEu6','sppCode','sppName','stockCode','depQuarter','depMonth','depWeek','arrQuarter','arrMonth','arrWeek','landQuarter','landMonth','landWeek')  
-    dt0agg<-dt0agg[, list(landWt=sum(landWt)),agg_columns]
+    
+    dt0agg<-dt0agg[, list(landWt=sum(dt0agg$landWt)),agg_columns]
     dt_sample <- dt0agg[withinTripSampUnit %in% selected_haulId, ]
     dim(dt_sample)
     ls1 <- split(dt_sample, dt_sample$withinTripSampUnit)
@@ -507,7 +516,7 @@ calc_refusals <- function(refusals, target_list){
   refusals
 }
 
-melt.array <- function (data, varnames = names(dimnames(data)), ..., na.rm = FALSE, 
+melt.array <- function (data, varnames = names(dimnames(data)), na.rm = FALSE, 
           as.is = FALSE, value.name = "value") 
 {
   var.convert <- function(x) {

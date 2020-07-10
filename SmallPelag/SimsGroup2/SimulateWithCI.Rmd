@@ -32,7 +32,7 @@ source("./R/validators.R")
 source("./R/simulators.R")
 
 # read packages [not sure all are used but...]
-library(data.table)
+#library(data.table)
 
 
 #read data
@@ -81,7 +81,7 @@ testData<- checkInputDataValidity(testData, withinTripSampUnit = "haulId" )
 # ======================
 res <- simulateSampling(data = testData,
                         refusals = 20,
-                        sppSelectMethod = sppSelectMethod,
+                        sppSelectMethod = "alternative_3",
                         target_vessels = target_list,
                         target_spp = target_spp,
                         keep_areas = keep_areas,
@@ -90,6 +90,8 @@ res <- simulateSampling(data = testData,
                         n_vessels = 5,
                         n_sims = 10)
 ```
+
+
 
 
 
