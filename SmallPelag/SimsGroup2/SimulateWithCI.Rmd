@@ -13,9 +13,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Introduction
 
-This file is for demonstrating the new simulation function that incorporates Coeficent intervals. The work is based on Nuno's script and refractored from it. It is still work in progess, ie some things might not work well (or not at all). Also the functions are lackng documentation (but it is comming at some point).
+This file is for demonstrating the new simulation function that incorporates Coeficent Intervals generation. The work is based on previous script "Sims_Sampling.r". The code in directory "R" is refractored from "Sims_Sampling.r". Refactoring might have braked some functionality, ie some things might not work as expected (or not at all). Also most functions are lackng documentation (hopefuly it is comming at some point).
 
 ```{r}
+#load your private data for actual simuations
 privateDataFile <- "../privateData/rcgEE2019.Rdata"
 #load(privateDataFile)
 ```
@@ -47,6 +48,8 @@ load(filename)
 
 ```{r}
 #----------------Options----------------------	
+#setting it for consistent results for real simulations good to remove it
+set.seed(123)
 
 # withinTripSampUnit
 # this is what will be sampled withinTrip
@@ -73,7 +76,7 @@ testData<- checkInputDataValidity(testData, withinTripSampUnit = "haulId" )
 # ======================
 # example of simulation
 # ======================
-
+system.time({
 res <- simulateSampling(data = testData,
                         refusals = 20,
                         sppSelectMethod = sppSelectMethod,
@@ -85,29 +88,15 @@ res <- simulateSampling(data = testData,
                         n_vessels = 5,
                         n_sims = 10,
                         print_tables = T)
-
-```
-
-
-```{r}
-system.time({
-res <- simulateSampling(data = testData,
-                        refusals = 20,
-                        sppSelectMethod = sppSelectMethod,
-                        target_vessels = target_list,
-                        target_spp = target_spp,
-                        keep_areas = keep_areas,
-                        withinTripSampMethod = withinTripSampMethod,
-                        withinTripSampUnit = withinTripSampUnit,
-                        n_vessels = 5,
-                        n_sims = 1,
-                        print_tables = F)
 })
 ```
 
 
 
 
+```{r}
+
+```
 
 
 

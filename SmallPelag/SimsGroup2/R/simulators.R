@@ -25,6 +25,10 @@
 #' if FALSE (default) - contacts n_vessels(some many not be fishing) 
 #' if TRUE - contacts vessels until n_vessels are found to be fishing
 #' @param print_tables logical shoud the simulation results be printed to screen 
+#' @param run_in_parallel logical shoud the simulation use mulitpe cores
+#' default (F) testing on UNIX intel i7-8665U revealed that not running in parallel 
+#' mannually resulted in longer times than not using parallel so  on newer
+#' proccessors this is not recommeded, might be useful on Windows...
 #'
 #' @return simulation results as a named list of data.tables
 #' @export
@@ -40,9 +44,10 @@ simulateSampling <- function(data,
                              nHaulsMaxPerArea=2,
                              keep_areas = NULL,
                              n_sims=1, n_vessels=5, fill_quota=FALSE,
-                             print_tables = T){
+                             print_tables = T,
+                             run_in_parallel = F){
 
-  #set.seed(123)
+  
   if(is.null(keep_areas)){
     keep_areas <- unique(data$area)
   }
@@ -64,7 +69,8 @@ simulateSampling <- function(data,
   
   # start simulation ---------------------------------------------------------
   
-  dt_sample <- calcInParallel(n_sims = n_sims, 
+  dt_sample <- calcInParallel(n_sims = n_sims,
+                              runParallel = run_in_parallel,
                               refusals=refusals,
                               target_list=target_list,
                               dt0,
@@ -82,7 +88,7 @@ simulateSampling <- function(data,
 
   #end simulation--------------------------------------------------------------
   #return(dt_sample)
-  browser()
+ 
   # creates useful object (restricts to target area & non-refusals)
   dt_sample<-lapply(dt_sample, function(x, keep_areas){
     droplevels(x[x$area %in% keep_areas & x$refusal==FALSE,])
@@ -118,16 +124,15 @@ simulateSampling <- function(data,
 #' @export
 #'
 #' @examples
-calcInParallel <- function(n_sims = 100, ...){
-  runParallel <- ifelse(n_sims < 100, F, T)
-  
+calcInParallel <- function(n_sims = 100, runParallel = F, ...){
+ 
   #no point to simulate if the count is low the overhead is just too big
   if(!runParallel){
     samples<-lapply(1:n_sims, generateSample, ...)
   }
   else{
     #TODO check how to reduce overhead so that it makes sense tu run in parallel
-    # should use package parallel and sockets not forking
+    # using package parallel and sockets not forking
     #Sockets work on Windows as well unlike forks
     perCore <- 25
     parsims <- ceiling(n_sims / perCore)
