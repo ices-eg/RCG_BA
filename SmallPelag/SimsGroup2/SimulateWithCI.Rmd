@@ -32,8 +32,6 @@ source("./R/validators.R")
 source("./R/simulators.R")
 
 # read packages [not sure all are used but...]
-library(foreign) 
-library(reshape2)
 library(data.table)
 
 
@@ -58,7 +56,7 @@ withinTripSampUnit <- "haulId" # alternative: "fishdayId"
 withinTripSampMethod <- "all_hauls" # alternative: "first_haul", "last_haul", "srswor_haul"
 		
 # sppSelectMethod
-sppSelectMethod <- "alternative_2" # alternative: "alternative_1", "alternative_2", "alternative_3", and so on
+sppSelectMethod <- "alternative_3" # alternative: "alternative_1", "alternative_2", "alternative_3", and so on
 target_spp<-c("Sprattus sprattus", "Clupea harengus") # if not NULL keep only selected species
 sign_prop <- 0.3 # only for alternative 3
 		

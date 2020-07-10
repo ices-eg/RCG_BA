@@ -469,10 +469,14 @@ select_spp_sampling_method <- function(dt0agg,
     dt0agg<-dt0agg[, list(landWt=sum(landWt)),agg_columns]
     dt_sample <- dt0agg[withinTripSampUnit %in% selected_haulId, ]
     # trimming down when rare
-    dim(dt_sample)
-    aux<-tapply(dt_sample$landWt, list(dt_sample$withinTripSampUnit,dt_sample$sppName), sum); aux[is.na(aux)]<-0; aux<-prop.table(aux,1); aux<-aux>sign_prop
-    aux<-reshape2::melt(aux); aux<-aux[aux[,3]==TRUE,]
-    dt_sample <- dt_sample[paste(dt_sample$withinTripSampUnit,dt_sample$sppName) %in% paste(aux[,1],aux[,2]),]
+    
+    aux <- tapply(dt_sample$landWt, list(dt_sample$withinTripSampUnit,dt_sample$sppName), sum)
+    aux[is.na(aux)] <- 0
+    aux <- prop.table(aux,1)
+    aux <- aux > sign_prop
+    aux <- melt.array(aux)
+    aux <-aux[aux[,3] == TRUE,]
+    dt_sample <- dt_sample[paste(dt_sample$withinTripSampUnit, dt_sample$sppName) %in% paste(aux[,1],aux[,2]),]
   }
   
   
@@ -501,4 +505,30 @@ calc_refusals <- function(refusals, target_list){
     return(sample(target_list, size=ceiling(length(target_list)*refusals/100)))
   }
   refusals
+}
+
+melt.array <- function (data, varnames = names(dimnames(data)), ..., na.rm = FALSE, 
+          as.is = FALSE, value.name = "value") 
+{
+  var.convert <- function(x) {
+    if (!is.character(x)) 
+      return(x)
+    x <- type.convert(x, as.is = TRUE)
+    if (!is.character(x)) 
+      return(x)
+    factor(x, levels = unique(x))
+  }
+  dn <- dimnames(data)
+  names(dn) <- varnames
+  if (!as.is) {
+    dn <- lapply(dn, var.convert)
+  }
+  labels <- expand.grid(dn, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
+  if (na.rm) {
+    missing <- is.na(data)
+    data <- data[!missing]
+    labels <- labels[!missing, ]
+  }
+  value_df <- setNames(data.frame(as.vector(data)), value.name)
+  cbind(labels, value_df)
 }
