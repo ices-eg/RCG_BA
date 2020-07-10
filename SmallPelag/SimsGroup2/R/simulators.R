@@ -58,14 +58,15 @@ simulateSampling <- function(data,
   #also data.table provides convinient subsetting
   dt0 <- data.table::as.data.table(data)
   
+  #dt0 <- add_fish_count(dt0, target_list)
   
-  #
   
   
   # start simulation ---------------------------------------------------------
   
-  dt_sample <- calcInParallel(refusals,
-                              target_list,
+  dt_sample <- calcInParallel(n_sims = n_sims, 
+                              refusals=refusals,
+                              target_list=target_list,
                               dt0,
                               n_vessels,
                               fill_quota,
@@ -74,10 +75,22 @@ simulateSampling <- function(data,
                               sppSelectMethod,
                               sign_prop,
                               target_spp,
-                              n_sims = n_sims)
+                              subsampleHaulsPerArea,
+                              nHaulsMaxPerArea
+                              )
   
 
   #end simulation--------------------------------------------------------------
+  #return(dt_sample)
+  browser()
+  # creates useful object (restricts to target area & non-refusals)
+  dt_sample<-lapply(dt_sample, function(x, keep_areas){
+    droplevels(x[x$area %in% keep_areas & x$refusal==FALSE,])
+    }, keep_areas)
+  
+  # TODO this might me poosible to move before simulation 
+  dt_sample <- lapply(dt_sample, add_fish_count, dt0, target_list)
+  
   aggregatedTables <- aggregate_results_to_tables(dt_sample,
                                                   print_tables = print_tables)
   
@@ -105,37 +118,95 @@ simulateSampling <- function(data,
 #' @export
 #'
 #' @examples
-calcInParallel <- function(refusals,
-                           target_list,
-                           dt0,
-                           n_vessels,
-                           fill_quota,
-                           withinTripSampUnit,
-                           withinTripSampMethod,
-                           sppSelectMethod,
-                           sign_prop,
-                           target_spp,
-                           cores2use = 0.5,
-                           n_sims = 100){
+calcInParallel <- function(n_sims = 100, ...){
+  runParallel <- ifelse(n_sims < 100, F, T)
+  
+  #no point to simulate if the count is low the overhead is just too big
+  if(!runParallel){
+    samples<-lapply(1:n_sims, generateSample, ...)
+  }
+  else{
+    #TODO check how to reduce overhead so that it makes sense tu run in parallel
+    # should use package parallel and sockets not forking
+    #Sockets work on Windows as well unlike forks
+    perCore <- 25
+    parsims <- ceiling(n_sims / perCore)
+    
+    coreCount <- parallel::detectCores()
+    cl <- parallel::makeCluster(min(coreCount, parsims))
+    parallel::clusterEvalQ(cl, {
+      require(data.table)
+      source("./R/validators.R")
+      source("./R/simulators.R")
+    })
+    
+    samples <- parallel::parLapply(cl, 1:parsims, function(x, ...){
+     lapply(1:perCore, generateSample, ...)}, ...)
+    
+    samples<-unlist(samples, recursive = F)
+    
+    parallel::stopCluster(cl)
+  }
   
   
-  #TODO actually make it parallel currently its not usig multiple cores
-  # should use package parallel and sockets not forking
-  #Sockets work on Windows as well
-  samples<-replicate(n_sims, generateSample(refusals,
-                                            target_list,
-                                            dt0,
-                                            n_vessels,
-                                            fill_quota,
-                                            withinTripSampUnit,
-                                            withinTripSampMethod,
-                                            sppSelectMethod,
-                                            sign_prop,
-                                            target_spp), simplify = FALSE)
-  
-
   return(samples)
 }
+
+
+add_fish_count <- function(dt_sample, dt0, target_list, boxWt = 4){
+  # adds expected weight (wtInBox) and number (nInBox) of fish in box
+  
+  samples_her<-dt0[vslId %in% target_list, list(landWt=landWt), list(withinTripSampUnit,sppName)][, list(wtInBox = sum(landWt[sppName=="Clupea harengus"])/sum(landWt)*boxWt), withinTripSampUnit]
+  samples_her$sppName<-"Clupea harengus"
+  assumed_herWeight<-0.024 # in kg
+  samples_her$nInBox<-round(samples_her$wtInBox/assumed_herWeight)
+  
+  samples_spr<-dt0[vslId %in% target_list, list(landWt=landWt), list(withinTripSampUnit,sppName)][, list(wtInBox = sum(landWt[sppName=="Sprattus sprattus"])/sum(landWt)*boxWt), withinTripSampUnit]
+  samples_spr$sppName<-"Sprattus sprattus"
+  assumed_sprWeight<-0.008 # in kg
+  samples_spr$nInBox<-round(samples_spr$wtInBox/assumed_sprWeight)						
+  
+  dt_sample$wtInBox<-NA
+  dt_sample$wtInBox[dt_sample$sppName=="Clupea harengus"]<-samples_her$wtInBox[match(paste(dt_sample[dt_sample$sppName=="Clupea harengus",]$withinTripSampUnit, dt_sample[dt_sample$sppName=="Clupea harengus",]$sppName), paste(samples_her$withinTripSampUnit, samples_her$sppName))]
+  dt_sample$wtInBox[dt_sample$sppName=="Sprattus sprattus"]<-samples_spr$wtInBox[match(paste(dt_sample[dt_sample$sppName=="Sprattus sprattus",]$withinTripSampUnit, dt_sample[dt_sample$sppName=="Sprattus sprattus",]$sppName), paste(samples_spr$withinTripSampUnit, samples_spr$sppName))]
+  
+  dt_sample$nInBox<-NA
+  dt_sample$nInBox[dt_sample$sppName=="Clupea harengus"]<-samples_her$nInBox[match(paste(dt_sample[dt_sample$sppName=="Clupea harengus",]$withinTripSampUnit, dt_sample[dt_sample$sppName=="Clupea harengus",]$sppName), paste(samples_her$withinTripSampUnit, samples_her$sppName))]
+  dt_sample$nInBox[dt_sample$sppName=="Sprattus sprattus"]<-samples_spr$nInBox[match(paste(dt_sample[dt_sample$sppName=="Sprattus sprattus",]$withinTripSampUnit, dt_sample[dt_sample$sppName=="Sprattus sprattus",]$sppName), paste(samples_spr$withinTripSampUnit, samples_spr$sppName))]
+  
+  # adds expected and number of fish sampled from box (nInBoxSampled)
+  
+  dt_sample$nInBoxSampled<-dt_sample$nInBox
+  dt_sample$nInBoxSampled[dt_sample$nInBoxSampled>50]<-50
+  
+  return(dt_sample)
+  
+}
+
+
+
+ 
+  
+subsample_hauls_per_area <- function(dt_sample2, nHaulsMaxPerArea){
+  # subsamples hauls per subdiv within trip sampled
+    ls1 <- split(dt_sample2, dt_sample2$fishTripId)
+    ls2 <- lapply(ls1, function(x, subsamp1 = nHaulsMaxPerArea){
+      y1 <- split(x, x$area)
+      y2 <- lapply(y1, function(z, subsamp2 = subsamp1)
+      {
+        hauls<-unique(z$withinTripSampUnit)
+        # subsamples hauls if n hauls > subsamp2
+        if (length(hauls)>subsamp2) {
+          z<-z[z$withinTripSampUnit %in% sample(hauls, size = subsamp2),]
+          }
+        
+      })
+      x <- data.table::rbindlist(y2)
+      									
+    })
+    data.table::rbindlist(ls2)
+  }
+
 
 #' Subsetting of Input Data
 #'
@@ -151,7 +222,8 @@ calcInParallel <- function(refusals,
 #' @param target_spp 
 #'
 #' @return
-generateSample <- function(refusals,
+generateSample <- function(nr, 
+                           refusals,
                            target_list,
                            dt0,
                            n_vessels,
@@ -160,7 +232,9 @@ generateSample <- function(refusals,
                            withinTripSampMethod,
                            sppSelectMethod,
                            sign_prop,
-                           target_spp){
+                           target_spp,
+                           subsampleHaulsPerArea,
+                           nHaulsMaxPerArea){
 
   
   refusals <- calc_refusals(refusals, target_list)
@@ -218,59 +292,12 @@ generateSample <- function(refusals,
     stop("See code!")
   }
   
-  # adds expected weight (wtInBox) and number (nInBox) of fish in box
-  
-  boxWt = 4	# in kg
-  
-  samples_her<-dt0[vslId %in% target_list, list(landWt=landWt), list(withinTripSampUnit,sppName)][, list(wtInBox = sum(landWt[sppName=="Clupea harengus"])/sum(landWt)*boxWt), withinTripSampUnit]
-  samples_her$sppName<-"Clupea harengus"
-  assumed_herWeight<-0.024 # in kg
-  samples_her$nInBox<-round(samples_her$wtInBox/assumed_herWeight)
-  
-  samples_spr<-dt0[vslId %in% target_list, list(landWt=landWt), list(withinTripSampUnit,sppName)][, list(wtInBox = sum(landWt[sppName=="Sprattus sprattus"])/sum(landWt)*boxWt), withinTripSampUnit]
-  samples_spr$sppName<-"Sprattus sprattus"
-  assumed_sprWeight<-0.008 # in kg
-  samples_spr$nInBox<-round(samples_spr$wtInBox/assumed_sprWeight)						
-  
-  dt_sample$wtInBox<-NA
-  dt_sample$wtInBox[dt_sample$sppName=="Clupea harengus"]<-samples_her$wtInBox[match(paste(dt_sample[dt_sample$sppName=="Clupea harengus",]$withinTripSampUnit, dt_sample[dt_sample$sppName=="Clupea harengus",]$sppName), paste(samples_her$withinTripSampUnit, samples_her$sppName))]
-  dt_sample$wtInBox[dt_sample$sppName=="Sprattus sprattus"]<-samples_spr$wtInBox[match(paste(dt_sample[dt_sample$sppName=="Sprattus sprattus",]$withinTripSampUnit, dt_sample[dt_sample$sppName=="Sprattus sprattus",]$sppName), paste(samples_spr$withinTripSampUnit, samples_spr$sppName))]
-  
-  dt_sample$nInBox<-NA
-  dt_sample$nInBox[dt_sample$sppName=="Clupea harengus"]<-samples_her$nInBox[match(paste(dt_sample[dt_sample$sppName=="Clupea harengus",]$withinTripSampUnit, dt_sample[dt_sample$sppName=="Clupea harengus",]$sppName), paste(samples_her$withinTripSampUnit, samples_her$sppName))]
-  dt_sample$nInBox[dt_sample$sppName=="Sprattus sprattus"]<-samples_spr$nInBox[match(paste(dt_sample[dt_sample$sppName=="Sprattus sprattus",]$withinTripSampUnit, dt_sample[dt_sample$sppName=="Sprattus sprattus",]$sppName), paste(samples_spr$withinTripSampUnit, samples_spr$sppName))]
-  
-  # adds expected and number of fish sampled from box (nInBoxSampled)
-  
-  dt_sample$nInBoxSampled<-dt_sample$nInBox
-  dt_sample$nInBoxSampled[dt_sample$nInBoxSampled>50]<-50
-  
-  # creates useful object (restricts to target area & non-refusals)
-  dt_sample2<-droplevels(dt_sample[dt_sample$area %in% keep_areas & dt_sample$refusal==FALSE,])
-  
-  # subsamples hauls per subdiv within trip sampled
-  
-  if (subsampleHaulsPerArea)
-  {
-    
-    ls1 <- split(dt_sample2, dt_sample2$fishTripId)
-    ls2 <- lapply(ls1, function(x, subsamp1 = nHaulsMaxPerArea){
-      y1 <- split(x, x$area)
-      y2 <- lapply(y1, function(z, subsamp2 = subsamp1)
-      {
-        hauls<-unique(z$withinTripSampUnit)
-        # subsamples hauls if n hauls > subsamp2
-        if (length(hauls)>subsamp2) z<-z[z$withinTripSampUnit %in% sample(hauls, size = subsamp2),]
-        z
-      })
-      x <- data.table::rbindlist(y2)
-      x									
-    })
-    dt_sample2<-data.table::rbindlist(ls2)
+  if(subsampleHaulsPerArea){
+    dt_sample<-subsample_hauls_per_area(dt_sample, nHaulsMaxPerArea)
   }
   
   
-  return(dt_sample2)
+  return(dt_sample)
 }
 
 

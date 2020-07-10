@@ -31,7 +31,7 @@ setwd("/home/rix133/Documents/software/ICES/RCG_BA/SmallPelag/SimsGroup2")
 source("./R/validators.R")
 source("./R/simulators.R")
 
-# read packages [not sure all are used but...]
+#loading required packages that are not present in base r
 #library(data.table)
 
 
@@ -66,29 +66,43 @@ nHaulsMaxPerArea<-2
 			
 # creates withinTripSampUnit column
 keep_areas <-  c("27.3.d.24","27.3.d.25","27.3.d.26","27.3.d.27","27.3.d.28.2","27.3.d.29")
-```
 
-
-```{r}
 #-----------Validate data format ----------
 testData<- checkInputDataValidity(testData, withinTripSampUnit = "haulId" )
-```
 
-
-```{r}
 # ======================
 # example of simulation
 # ======================
+
 res <- simulateSampling(data = testData,
                         refusals = 20,
-                        sppSelectMethod = "alternative_3",
+                        sppSelectMethod = sppSelectMethod,
                         target_vessels = target_list,
                         target_spp = target_spp,
                         keep_areas = keep_areas,
                         withinTripSampMethod = withinTripSampMethod,
                         withinTripSampUnit = withinTripSampUnit,
                         n_vessels = 5,
-                        n_sims = 10)
+                        n_sims = 10,
+                        print_tables = T)
+
+```
+
+
+```{r}
+system.time({
+res <- simulateSampling(data = testData,
+                        refusals = 20,
+                        sppSelectMethod = sppSelectMethod,
+                        target_vessels = target_list,
+                        target_spp = target_spp,
+                        keep_areas = keep_areas,
+                        withinTripSampMethod = withinTripSampMethod,
+                        withinTripSampUnit = withinTripSampUnit,
+                        n_vessels = 5,
+                        n_sims = 1,
+                        print_tables = F)
+})
 ```
 
 
