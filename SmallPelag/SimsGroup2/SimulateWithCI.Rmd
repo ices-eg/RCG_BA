@@ -13,20 +13,14 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Introduction
 
-This file is for demonstrating the new simulation function that incorporates Coeficent Intervals generation. The work is based on previous script "Sims_Sampling.r". The code in directory "R" is refractored from "Sims_Sampling.r". Refactoring might have braked some functionality, ie some things might not work as expected (or not at all). Also most functions are lackng documentation (hopefuly it is comming at some point).
+This file is for demonstrating the new simulation function that incorporates Coeficent Intervals generation. The work is based on previous script "Sims_Sampling.r". In particular, the code from directory "R" is refractored from "Sims_Sampling.r". Refactoring might have braked some functionality, ie some things might not work as expected (or not at all). Also most functions are lacking elaborate documentation (hopefuly it is comming at some point).
 
-```{r}
-#load your private data for actual simuations
-privateDataFile <- "../privateData/rcgEE2019.Rdata"
-#load(privateDataFile)
-```
 
 
 
 ## Simulations
 
 ```{r}
-setwd("/home/rix133/Documents/software/ICES/RCG_BA/SmallPelag/SimsGroup2")
 
 #load functions
 source("./R/validators.R")
