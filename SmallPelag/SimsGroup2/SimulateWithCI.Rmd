@@ -1,5 +1,5 @@
 ---
-title: "Simulating sampling schemes"
+title: "Simulating sampling schemes for Estonia"
 author: "Richard Meitern"
 date: "7/9/2020"
 output:
@@ -13,36 +13,26 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Introduction
 
-This file is for demonstrating the new simulation function that incorporates Coeficent Intervals generation. The work is based on previous script "Sims_Sampling.r". The code in directory "R" is refractored from "Sims_Sampling.r". Refactoring might have braked some functionality, ie some things might not work as expected (or not at all). Also most functions are lackng documentation (hopefuly it is comming at some point).
+This file is for demonstrating the new simulation function that incorporates Coeficent Intervals generation. The work is based on previous script "Sims_Sampling.r". The code in directory "R" is refractored from "Sims_Sampling.r". Refactoring might have braked some functionality, ie some things might not work as expected (or not at all). Also most functions are lackng documentation (some is present below and also in function heads).
 
 ```{r}
 #load your private data for actual simuations
-privateDataFile <- "../privateData/rcgEE2019.Rdata"
-#load(privateDataFile)
+privateDataFile <- "../../../privateData/rcgEE2019.Rdata"
+load(privateDataFile)
 ```
-
 
 
 ## Simulations
 
 ```{r}
-setwd("/home/rix133/Documents/software/ICES/RCG_BA/SmallPelag/SimsGroup2")
 
 #load functions
-source("./R/validators.R")
-source("./R/simulators.R")
+source('./R/validators.R')
+source('./R/simulators.R')
 
 #loading required packages that are not present in base r
 #library(data.table)
 
-
-#read data
-filename<-"./testData.Rdata"
-load(filename)
-
-# load vector of vessels in frame
-filename<-"./target_list.Rdata"
-load(filename)
 ```
 
 
@@ -56,11 +46,14 @@ set.seed(123)
 withinTripSampUnit <- "haulId" # alternative: "fishdayId"
 			
 # withinTripSampMethod	
-withinTripSampMethod <- "all_hauls" # alternative: "first_haul", "last_haul", "srswor_haul"
+withinTripSampMethod <- "all_hauls"
+# alternative: "first_haul", "last_haul", "srswor_haul"
 		
 # sppSelectMethod
-sppSelectMethod <- "alternative_3" # alternative: "alternative_1", "alternative_2", "alternative_3", and so on
-target_spp<-c("Sprattus sprattus", "Clupea harengus") # if not NULL keep only selected species
+sppSelectMethod <- "alternative_2"
+# alternative: "alternative_1", "alternative_2", "alternative_3", and so on
+target_spp<-c("Sprattus sprattus", "Clupea harengus")
+# if not NULL keep only selected species
 sign_prop <- 0.3 # only for alternative 3
 		
 # subsampleHaulsPerSubdivision	
@@ -68,15 +61,15 @@ subsampleHaulsPerArea<- TRUE # alternative: TRUE, FALSE
 nHaulsMaxPerArea<-2
 			
 # creates withinTripSampUnit column
-keep_areas <-  c("27.3.d.24","27.3.d.25","27.3.d.26","27.3.d.27","27.3.d.28.2","27.3.d.29")
+keep_areas <-  c("27.3.d.28.1", "27.3.d.28.2", "27.3.d.29", "27.3.d.32")
 
 #-----------Validate data format ----------
-testData<- checkInputDataValidity(testData, withinTripSampUnit = "haulId" )
+testData<- checkInputDataValidity(rcgEE2019, withinTripSampUnit = "haulId" )
+target_list <- NULL #vessel names to sample if NULL samples all
 
 # ======================
 # example of simulation
 # ======================
-system.time({
 res <- simulateSampling(data = testData,
                         refusals = 20,
                         sppSelectMethod = sppSelectMethod,
@@ -88,7 +81,7 @@ res <- simulateSampling(data = testData,
                         n_vessels = 5,
                         n_sims = 10,
                         print_tables = T)
-})
+
 ```
 
 
