@@ -41,7 +41,7 @@ far2rcg <- function(year, farRaw, dep, rtp, VD, country){
     
     df$year <- as.character(year)
     df$vslFlgCtry <- farRaw$VDflagCountry
-    df$vslId <- farRaw$VDencryptedVesselCode
+    df$vslId <- farRaw$vessel #use the actual vessel name
     df$vslLenCls <- farRaw$VDlengthCategory
     df$fishTripId <- farRaw$tripCode
     df$haulId <- paste0(df$fishTripId, "_0", farRaw$haulNr)
