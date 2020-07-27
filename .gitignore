@@ -9,3 +9,23 @@ SmallPelag/SimsGroup2/target_list.Rdata
 SmallPelag/SimsGroup2/testData.Rdata
 
 SmallPelag/SimsGroup1/1_sim_landings/output/
+SmallPelag/DataPrep/doc_reports/Basic_DataCheck_DEU.docx
+SmallPelag/DataPrep/doc_reports/Basic_DataCheck_DNK.docx
+SmallPelag/DataPrep/doc_reports/Basic_DataCheck_EST.docx
+SmallPelag/DataPrep/doc_reports/Basic_DataCheck_FIN.docx
+SmallPelag/DataPrep/doc_reports/Basic_DataCheck_LTU.docx
+SmallPelag/DataPrep/doc_reports/Basic_DataCheck_LVA.docx
+SmallPelag/DataPrep/doc_reports/Basic_DataCheck_POL.docx
+SmallPelag/DataPrep/doc_reports/Basic_DataCheck_SWE.docx
+SmallPelag/DataPrep/csv_reports/x1.csv
+SmallPelag/DataPrep/csv_reports/x2.csv
+SmallPelag/DataPrep/csv_reports/x3.csv
+SmallPelag/DataPrep/csv_reports/x4.csv
+SmallPelag/DataPrep/csv_reports/x4a.csv
+SmallPelag/DataPrep/csv_reports/x4b.csv
+SmallPelag/DataPrep/csv_reports/x4c.csv
+SmallPelag/DataPrep/csv_reports/x5.csv
+SmallPelag/DataPrep/csv_reports/x6.csv
+SmallPelag/DataPrep/csv_reports/x7.csv
+
+/SmallPelag/DataPrep/data/*
