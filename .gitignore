@@ -27,9 +27,9 @@ SmallPelag/DataPrep/csv_reports/x5.csv
 SmallPelag/DataPrep/csv_reports/x6.csv
 SmallPelag/DataPrep/csv_reports/x7.csv
 
-SmallPelag/DataPrep/data/*
-SmallPelag/DataPrep/aux_files/*
-SmallPelag/DataPrep/outputs/*
+SmallPelag/DataPrep/data/
+SmallPelag/DataPrep/aux_files/
+SmallPelag/DataPrep/outputs/
 
 SmallPelag/privateData/
 
