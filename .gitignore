@@ -30,3 +30,4 @@ SmallPelag/DataPrep/csv_reports/x7.csv
 
 SmallPelag/DataPrep/data/*
 SmallPelag/DataPrep/aux_files/*
+SmallPelag/DataPrep/outputs/*
