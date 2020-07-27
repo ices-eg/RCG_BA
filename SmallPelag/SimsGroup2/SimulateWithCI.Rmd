@@ -1,0 +1,128 @@
+---
+title: "Simulating sampling schemes"
+author: "Richard Meitern"
+date: "7/9/2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+This file is for demonstrating the new simulation function that incorporates Coeficent Intervals generation. The work is based on previous script "Sims_Sampling.r". In particular, the code from directory "R" is refractored from "Sims_Sampling.r". Refactoring might have braked some functionality, ie some things might not work as expected (or not at all). Also most functions are lacking elaborate documentation (hopefuly it is comming at some point).
+
+
+
+
+## Simulations
+
+```{r}
+
+#load functions
+source("./R/validators.R")
+source("./R/simulators.R")
+
+#loading required packages that are not present in base r
+#library(data.table)
+
+
+#read data
+filename<-"./testData.Rdata"
+load(filename)
+
+# load vector of vessels in frame
+filename<-"./target_list.Rdata"
+load(filename)
+```
+
+
+```{r}
+#----------------Options----------------------	
+#setting it for consistent results for real simulations good to remove it
+set.seed(123)
+
+# withinTripSampUnit
+# this is what will be sampled withinTrip
+withinTripSampUnit <- "haulId" # alternative: "fishdayId"
+			
+# withinTripSampMethod	
+withinTripSampMethod <- "all_hauls" # alternative: "first_haul", "last_haul", "srswor_haul"
+		
+# sppSelectMethod
+sppSelectMethod <- "alternative_3" # alternative: "alternative_1", "alternative_2", "alternative_3", and so on
+target_spp<-c("Sprattus sprattus", "Clupea harengus") # if not NULL keep only selected species
+sign_prop <- 0.3 # only for alternative 3
+		
+# subsampleHaulsPerSubdivision	
+subsampleHaulsPerArea<- TRUE # alternative: TRUE, FALSE
+nHaulsMaxPerArea<-2
+			
+# creates withinTripSampUnit column
+keep_areas <-  c("27.3.d.24","27.3.d.25","27.3.d.26","27.3.d.27","27.3.d.28.2","27.3.d.29")
+
+#-----------Validate data format ----------
+testData<- checkInputDataValidity(testData, withinTripSampUnit = "haulId" )
+
+# ======================
+# example of simulation
+# ======================
+system.time({
+res <- simulateSampling(data = testData,
+                        refusals = 20,
+                        sppSelectMethod = sppSelectMethod,
+                        target_vessels = target_list,
+                        target_spp = target_spp,
+                        keep_areas = keep_areas,
+                        withinTripSampMethod = withinTripSampMethod,
+                        withinTripSampUnit = withinTripSampUnit,
+                        n_vessels = 5,
+                        n_sims = 10,
+                        print_tables = T)
+})
+```
+
+
+
+
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

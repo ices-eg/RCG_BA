@@ -28,7 +28,7 @@ knitr::opts_chunk$set(
 
 # Data
 
-Only selecting samples with heernig | sprat in area 27.3
+see script 007_
 
 ```{r read_data, include = F, eval = T}
 
@@ -112,6 +112,12 @@ kable(summarise(group_by(filter(ca_spf, !(is.na(Age))), Year, stock, area, Sampl
 ```{r}
 
 kable(summarise(group_by(filter(ca_spf, !(is.na(Age))), Year, SamplingCountry), no_trips = length(unique(CS_TripId))))
+
+kable(summarise(group_by(filter(ca_spf, !(is.na(Age))), Year, FlagCountry), no_trips = length(unique(CS_TripId))))
+
+kable(summarise(group_by(filter(ca_spf, !(is.na(Age)))), mean_no_trips = (length(unique(CS_TripId)))/2))
+
+kable(summarise(group_by(filter(ca_spf, !(is.na(Age))), FlagCountry), mean_no_trips = mean(length(unique(CS_TripId)))/2))
 
 kable(summarise(group_by(filter(ca_spf, !(is.na(Age))), Year, SamplingCountry, FlagCountry), no_trips = length(unique(CS_TripId))))
 

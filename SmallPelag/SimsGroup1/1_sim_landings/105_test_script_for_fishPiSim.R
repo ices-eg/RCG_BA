@@ -1,57 +1,52 @@
-# Code to run the fishPi2 WP3 simulations for the North Sea case study
+# Script for testing the fishPiSim package - this simulates harbour sampling - the script requires two input files, one with
+#  scenario setting and one with specific about the sampling units (in this case port) and inclusion in different sampling frames, 
+#  these will be created with script 104_.
+#  Original test script and an example of the input files can be found in the fishPiSim package https://github.com/ices-tools-dev/FishPi2/tree/master/WP3
+
+# Kirsten Birch Håkansson, DTU Aqua
+#   v1: 20200623 - Just a more or less random setup - not using the input files
+
 
 #--------------------------------------------------
 # Set-up
 #--------------------------------------------------
 # Set path - PUT YOUR OWN PATHS HERE !!!
-path.data <-"X:/fishPi2/simulation code/fishPiSim package/"
-setwd(path.data)
+path.data <- "Q:/dfad/users/kibi/data/RCG/from_share_point/"
+
 
 # load the libraries and functions
 library(fishPiSim)
 library(survey)
-lengthUnique <-function(x){length(unique(x))}
+lengthUnique <- function(x){length(unique(x))}
 
 # SAVE LOCATIONS - PUT YOUR OWN PATHS HERE !!!
 # location for saved simulation files
-simSaveLoc <- "X:/fishPi2/simulation output/"
+simSaveLoc <- "Q:/mynd/kibi/projects_wks_wgs_rcgs/ISSG_small_pelagics_in_the_Baltic/gits/RCG_BA/SmallPelag/SimsGroup1/1_sim_landings/output/test/"
 # location for saved simulation plots
-plotSaveLoc <- "X:/fishPi2/simulation plots and tables output/Plots/"
+plotSaveLoc <- "Q:/mynd/kibi/projects_wks_wgs_rcgs/ISSG_small_pelagics_in_the_Baltic/gits/RCG_BA/SmallPelag/SimsGroup1/1_sim_landings/output/test/"
 # location for saved simulation tables?
-tableSaveLoc <- "X:/fishPi2/simulation plots and tables output/Tables Summary/"
+tableSaveLoc <- "Q:/mynd/kibi/projects_wks_wgs_rcgs/ISSG_small_pelagics_in_the_Baltic/gits/RCG_BA/SmallPelag/SimsGroup1/1_sim_landings/output/test/"
 
-# Definitions of countries, species, areas, and other definitions of interest
-ctryOfInterest <-c("BEL","DEU","DNK","FRA","GBE","GBS","NLD","SWE")
-widerNSea <- c("27.7.d" , "27.4.a" ,"27.4.b", "27.4.c", "27.3.a.20", "27.3.a.21", "27.3.a")
-fishOfInterest <- c("PLE","POK","COD","HAD","SOL","WHG","HKE","ANF", "TUR","GUU","DAB","MUR","LEM","LIN","BLL","FLE","GUG","POL","WIT")
-demISSCAAP <- c(31:34)
+# Definitions of countries, species, areas, and other definitions of interest - these are common for all the simulation, so put here
+ctryOfInterest <- c("DEU", "DNK", "EST", "FIN", "LTU", "LVA", "POL", "SWE")
+#widerNSea <- c("27.7.d" , "27.4.a" ,"27.4.b", "27.4.c", "27.3.a.20", "27.3.a.21", "27.3.a")
+fishOfInterest <- c("SPR", "HER")
+#demISSCAAP <- c(31:34) 
+
 
 # What population are we sampling from ?
 
-load("X:/fishPi2/simulation code/fishPiSim package/testData.rData")
-testData <- testData[!is.na(testData$landCtry),]
+dat <- readRDS("data_prepared_minimized_for_fishPi2_test.rsd")
 
 # Create the dataframe xx
-xx <- testData
-# If required, adjust gear, species and landCtry codes:
-# Simplify gears
-xx$foCatReg <- xx$foCatEu6
-xx$foCatReg <- gsub("OTB","OTC",xx$foCatReg)
-xx$foCatReg <- gsub("PTB","OTC",xx$foCatReg)
-xx$foCatReg <- gsub("OTT","OTC",xx$foCatReg)
-xx$foCatReg[!(substr(xx$foCatReg,1,3) %in% c("OTC","TBB","SSC","GNS","SDN","GTR"))] <- "MIS_MIS_0_0_0"
-# group subspecies
-xx$sppReg <- xx$sppFAO
-xx$sppReg[xx$sppFAO == "MNZ" |xx$sppFAO == "MON" |xx$sppFAO == "ANK"] <- "ANF"
-xx$sppReg[xx$sppFAO == "MEG" |xx$sppFAO == "LBD" ] <- "LEZ"
-# group sepcies not of interest
-xx$sppReg[!(xx$sppFAO %in% fishOfInterest)] <- "ZZZ"
-# move GBW to GBE
-xx$landCtry[xx$landCtry =="GBW"] <- "GBE"
-xx$vslFlgCtry[xx$vslFlgCtry =="WLS"] <- "ENG"
+unique(dat$landCtry)
+xx <- subset(dat, !is.na(landCtry) & !is.na(landLoc) & !is.na(landDate))
 
-if(!is.null(xx)){rm(testData)
-gc()}
+if (!is.null(xx)) {
+  rm(dat)
+  gc()
+}
+
 
 #--------------------------------------------------
 # Set-up variables for stratification
@@ -73,38 +68,19 @@ table(xx$newStrata)
 # Scenario settings
 #--------------------------------------------------
 # How many simulations do you want to run ?
-nsim <- 3
+nsim <- 10
 
-# The scenario settings can either be input manually or read from an input file.
-# The benefits of using an input file are that a record remains of the input settings, and it is easier for running multiple scenarios sequentially as a loop
-
-################## If MANUALLY inputting the settings:
-# Give your simulation a unique name
-scenario <- "test"
-
-# If using portFrame, which pre-set port allocation do you want to use?
-portAllocation <- "majorPorts95"
-# or do you want to use the current sampling settings?
-#portAllocation <- "sampNow"
-# or do you want to create new port allocations?
-#portAllocation <- "new"       # SET NEW PORT ALLOCATION SETTINGS in  the 'createPortAllocations' function below
-
-# What is the total effort
-totalEffort <-  711
-minorEffortAllocation <- 4
-
-sampleForeignVessels = TRUE
 
 ################## If READING AN INPUT FILE to input the scenario settings:
 
-simInputFile <-read.csv(file=paste("simulationInputFile_example.csv"))
+simInputFile <-read.csv(file=paste("SmallPelag/SimsGroup1/1_sim_landings/xxx.csv"))
 
 scenarioNames <- as.character(simInputFile$scenarioName)
 scenarioNames
 
 # do you want to run this a a loop?
-for(i in 1:length(scenarioNames)){
-  rm(calcs,myData,myResObj,results)
+for(i in 1:length(scenarioNames)) {
+  rm(calcs, myData, myResObj, results)
   gc()
 
   # get the scenarion settings from the simInputFile, to select  a single entry from simInputFile use i=1
@@ -333,7 +309,7 @@ if (!file.exists(paste(tableSaveLoc,"fishpi2 simulation summary species lists.cs
 # Plot accumulation curves
 
   cairo_pdf(file = paste(plotSaveLoc,"Simulation accumulation curves for ", scenario , totalEffort,"effort", nsim, "nsim.pdf", sep = ""),width=8,height=12, onefile = T, fallback_resolution = 200)
-  accCurves(results, calcs, sppHighlighted = c("COD", "POK","HAD","PLE","SOL","HKE"))
+  accCurves(results, calcs, sppHighlighted = c("SPR", "HER"))
   dev.off()
 
 

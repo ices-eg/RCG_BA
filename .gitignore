@@ -7,7 +7,6 @@
 *.xlsm
 SmallPelag/SimsGroup2/target_list.Rdata
 SmallPelag/SimsGroup2/testData.Rdata
-
 SmallPelag/SimsGroup1/1_sim_landings/output/
 SmallPelag/DataPrep/doc_reports/Basic_DataCheck_DEU.docx
 SmallPelag/DataPrep/doc_reports/Basic_DataCheck_DNK.docx
@@ -31,3 +30,7 @@ SmallPelag/DataPrep/csv_reports/x7.csv
 SmallPelag/DataPrep/data/*
 SmallPelag/DataPrep/aux_files/*
 SmallPelag/DataPrep/outputs/*
+
+SmallPelag/privateData/
+
+testing.*

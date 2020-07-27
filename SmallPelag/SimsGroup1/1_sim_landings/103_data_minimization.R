@@ -37,7 +37,7 @@ if (version == "test") {
   #unique(dat$area)
   #widerNSea <- c("27.7.d" , "27.4.a" ,"27.4.b", "27.4.c" , "27.3.a.20" , "27.3.a.21", "27.3.a")
   vars <-  c("vslFlgCtry","vslLenCls","fishTripId","landLoc","rect","area","foCatEu6","sppCode","sppName",   
-             "landWt","landDay","landDate","sppFAO","ISSCAAP","landCtry","gear","stock","landType")
+             "landWt","landDay","landDate","sppFAO","ISSCAAP","landCtry","gear","stock","landType", "vslId")
   
   sppTypeIndex <- which(dat$tripMainSppType == "pelagic")
   dat_1 <- dat[sppTypeIndex,]

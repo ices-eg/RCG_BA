@@ -59,7 +59,7 @@ table(xx$newStrata)
 # Scenario settings
 #--------------------------------------------------
 # How many simulations do you want to run ?
-nsim <- 200
+nsim <- 500
 
 # The scenario settings can either be input manually or read from an input file.
 # The benefits of using an input file are that a record remains of the input settings, and it is easier for running multiple scenarios sequentially as a loop
@@ -84,10 +84,10 @@ xx$domain <- paste(xx$stock, sep = "-")
 
 myPSU <- xx$fishTripId #paste(xx$landLoc, xx$landDate, sep = "_") # the psu is site X day for the on-shore sampling
 
-unique(xx$landCtry)
+unique(xx$vslFlgCtry)
 
 # Create strata:
-myStratum <- getStratum(xx, stratification = "vslFlgCtry", samplingExclusions = c("NA", NA, "NOR"))
+myStratum <- getStratum(xx, stratification = "vslFlgCtry", samplingExclusions = c("NOR"))
 
 
 # Create Effort allocation:
@@ -95,8 +95,8 @@ myEffort <- getEffort(xx, strata = myStratum, strataType = "stratified",  alloca
                       PSU = myPSU, totalEffort = 600, psuThreshold = NA, minorEffortAllocation = NA) # The two latter needs to be NA
 # If a "none" stratum is missing, then this one don't work - need to hack
 
-# Setting the effort manually
-myEffort <- c(DEU = 50, DNK = 50, EST = 50, FIN = 50, LTU = 50, LVA = 50, POL = 50, SWE = 50)
+# Setting the effort manually - below present sampling based on vslFlgCtry - mean samlpled trips 2017 & 2018
+myEffort <- c(DEU = 49, DNK = 38, EST = 113, FIN = 100, LTU = 9, LVA = 93, POL = 56, SWE = 165)
 
 
 # setUpData sets up the data set:
@@ -111,7 +111,7 @@ myResObj <-setUpSim(nsim, myData$data, simName = scenario)
 
 cat(paste("\nStarting simulation: ", scenario,"\n"))
 # run the simulations
-results <- runSim(nsim, myData, maxSsuSamp = 2, myResObj, sampleForeign = sampleForeignVessels, save = TRUE, saveLoc = simSaveLoc, simName = scenario)
+results <- runSim(nsim, myData, maxSsuSamp = 100, myResObj, sampleForeign = sampleForeignVessels, save = TRUE, saveLoc = simSaveLoc, simName = scenario)
 
 
 # if nsim > 1 then we calculate some summary results
