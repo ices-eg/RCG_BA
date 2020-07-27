@@ -18,7 +18,10 @@ library(data.table)
 # ========================	
 # some additional variables
 # ========================
-	 
+
+	# landThousTon
+	dt1$landThousTon<-dt1$landWt/10^6	
+	
 	# Year of landing
 	dt1$year<-format(as.Date(dt1$landDate), format="%Y") 
 
@@ -75,17 +78,35 @@ library(data.table)
 	# ID duplicates
 		dt1[,.N, list(year, fishTripId, depDate, depLoc, landDate, landLoc, rect, area,foCatEu6, sppCode, sppName, landCat)][N>1,]
 		# fix by aggregation
-			dt1<-dt1[,list(landWt=sum(landWt)), list(year, vslFlgCtry,vslId,vslLenCls,fishTripId,depDate,depLoc,landDate,landLoc,rect,area,gearType,foCatEu6,sppCode,sppName,landCat)] 
+			dt1<-dt1[,list(landWt=sum(landWt), landThousTon = sum(landThousTon)), list(year, month, vslFlgCtry,vslId,vslLenCls,fishTripId,depDate,depLoc,landDate,landLoc,rect,area,gearType,foCatEu6,sppCode,sppName,landCat)] 
 
-	save(dt1, file="data_compiled.Rdata")		
+	# issue on rectangle [move to DNK prep]
+	
+		dt1[dt1$rec=="39G5" & area=="27.3.d.24",]$area<-"27.3.d.25"			
+			
+	# add HER and SPR stocks
+		
+		dt1$stock<-"NULL"
+		dt1[dt1$sppName == "Clupea harengus" & dt1$area == "27.3.d.31"]$stock <- "her.27.3031"
+		dt1[dt1$sppName == "Clupea harengus" & dt1$area == "27.3.d.30"]$stock <- "her.27.3031"
+		dt1[dt1$sppName == "Clupea harengus" & dt1$area == "27.3.d.28.1"]$stock <- "her.27.28.1"
+		dt1[dt1$sppName == "Clupea harengus" & dt1$area %in% c("27.3.d.25", "27.3.d.26", "27.3.d.27","27.3.d.28.2","27.3.d.29","27.3.d.32")]$stock <- "her.27.25-2932"
+		dt1[dt1$sppName == "Clupea harengus" & dt1$area %in% c("27.3.b.23","27.3.c.22","27.3.d.24")]$stock <- "her.27.20-24"
+		dt1[dt1$sppName == "Clupea harengus" & dt1$area %in% c("27.3.a.20", "27.3.a.21")]$stock <- "her.27.20-24 or her.27.3a47d"
+		dt1[dt1$sppName == "Sprattus sprattus" & dt1$area %in% c("27.3.a.20", "27.3.a.21")]$stock <- "spr.27.3a4"
+		dt1[dt1$sppName == "Sprattus sprattus" & !dt1$area %in% c("27.3.a.20", "27.3.a.21")]$stock <- "spr.27.22-32"
+	
+
+	
+	save(dt1, file="data\\prepared\\data_compiled.Rdata")		
 			
 			
 # ==================
 # Comparison with RDB data
 # ==================			
 			
-	ref_data<-read.csv2("tot_rdb_baltic.csv")			
-	ref_data<-rbind(ref_data, read.csv2("tot_rdb_nsea.csv"))			
+	ref_data<-read.csv2("data\\rdb_totals\\tot_rdb_baltic.csv")			
+	ref_data<-rbind(ref_data, read.csv2("data\\rdb_totals\\tot_rdb_nsea.csv"))			
 
 	ref_data$Var1[ref_data$Var1 %in% c("27.3.d.28.1","27.3.d.28.2")]<-"27.3.d.28"	
 	ref_data<-aggregate(value~Var4+Var2+Var1+Var3, data=ref_data, sum, na.rm=T)
@@ -99,17 +120,18 @@ library(data.table)
 	# aggregation year*area
 	a<-merge(datacall_data, ref_data[c("ID","value")], by="ID", all.x=T)
 	a$res<-round((a$V1-a$value)/a$value,2)
-colnames(a)[colnames(a)=="V1"]<-"datacall"
-colnames(a)[colnames(a)=="value"]<-"rdb"
+	colnames(a)[colnames(a)=="V1"]<-"datacall"
+	colnames(a)[colnames(a)=="value"]<-"rdb"
 
-	write.csv2(a, file="comparison_rdb_datacall_year_and_area.csv")
+	write.csv2(a, file="data\\rdb_totals\\comparison_rdb_datacall_year_and_area.csv")
 	
 	# aggregation year
+	a<-merge(datacall_data, ref_data[c("ID","value")], by="ID", all.x=T)
 	a<-a[,list(V1=sum(V1), value=sum(value, na.rm=T)), list(vslFlgCtry, sppName, year)][order(vslFlgCtry),]
 	a$res<-round((a$V1-a$value)/a$value,2)
-colnames(a)[colnames(a)=="V1"]<-"datacall"
-colnames(a)[colnames(a)=="value"]<-"rdb"
-	write.csv2(a, file="comparison_rdb_datacall_year.csv")
+	colnames(a)[colnames(a)=="V1"]<-"datacall"
+	colnames(a)[colnames(a)=="value"]<-"rdb"
+	write.csv2(a, file="data\\rdb_totals\\comparison_rdb_datacall_year.csv")
 
 
 
