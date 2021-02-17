@@ -255,7 +255,7 @@
 						# 7:         POL   408             0.80 -> stratified
 						# 8:         DNK   165             0.84	-> stratified				
 
-					# SWE only 2011 onwards
+					# SWE only 2011 onwards, EST always
 			
 
 								aux3$assumedSamplingMethod<-"STSRSWOR"
