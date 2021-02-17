@@ -82,7 +82,7 @@
 	library(rlist)
 
 # set file parameters
-    stock <-  "her.25-2932" # "her.27.25-29" "spr.27.22-32"
+    stock <-  "spr.22-32" #
     sampType = "SRSWOR"
     filename = paste(stock,"_",sampType,sep="")
 	
