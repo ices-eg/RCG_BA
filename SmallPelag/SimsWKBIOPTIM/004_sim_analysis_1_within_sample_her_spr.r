@@ -25,7 +25,7 @@
 		# set file parameters
 		stock <-  "her.25-2932" #"spr.27.22-32" # "her.27.25-29"
 		sampType = "SRSWOR"    
-		filename = paste(stock,"_",sampType,sep="")
+		fileroot<-filename <- paste(stock,"_",sampType,sep="")
     
 		# load sim results
 		if(filename == "her.25-2932_SRSWOR") load(paste("003_Sim_Results/",filename,"/Sim_results_", filename, "_100_TRUE_202102162208.rdata", sep=""))		
@@ -157,7 +157,8 @@
 			f2(x = sim_res1_var_nopop,variable = "lenCls", target_stat = "MWCV", selected_samp_size = selected_samp_size)
 			f2(x = sim_res1_var_nopop,variable = "age", target_stat = "MWCV", selected_samp_size = selected_samp_size)
 			f2(x = sim_res1_var_nopop,variable = "age", target_stat = "cv", selected_samp_size = selected_samp_size)
-	
+			f2(x = sim_res1_var_nopop,variable = "lenCls", target_stat = "mean", selected_samp_size = selected_samp_size)
+				
 		# The following function returns a table with FUN applied to all replicates of a give sample size
 	
 			f3 <- function(x, target_vars, target_stats, selected_samp_size = 50, FUN)
@@ -176,7 +177,7 @@
 								}	
 			
 			f3(x = sim_res1_var_nopop, target_vars = c("lenCls","age"), target_stats = c("cv","MWCV"), selected_samp_size = 50, FUN = "max")					
-			f3(x = sim_res1_var_nopop, target_vars = c("lenCls","age"), target_stats = c("cv","MWCV"), selected_samp_size = 50, FUN = "median")					
+			f3(x = sim_res1_var_nopop, target_vars = c("lenCls","age"), target_stats = c("cv","MWCV"), selected_samp_size = 50, FUN = "quantile")					
 			
 			# final graph (2 var)				
 			par(mfrow=c(2,2))
