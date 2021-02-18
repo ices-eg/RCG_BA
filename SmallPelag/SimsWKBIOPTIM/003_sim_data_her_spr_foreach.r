@@ -82,7 +82,7 @@
 	library(rlist)
 
 # set file parameters
-    stock <-  "spr.22-32" #
+    stock <-  "her.28" #
     sampType = "SRSWOR"
     filename = paste(stock,"_",sampType,sep="")
 	
@@ -147,10 +147,7 @@
 
 	# check object structure
 	str(ls_original_modes,3)
-	if(filename=="her.27.25-2932") sampId <- "SWE_2019_4502862"
-	if(filename=="her.27.25-29") sampId <- "2011_2047"
-	if(filename=="spr.27.22-32_8") sampId <- "2009_2105"
-	if(filename=="spr.27.22-32_4") sampId <- "2009_2051"	
+	if(filename=="her.28") sampId <- "388318"	
 	ls_original_modes[[1]]$lenCls
 	ls_original_modes[[1]]$age
 	# the following are not defined for example
@@ -216,7 +213,7 @@
 	
 	
 	# select number of sims
-	nsim <- 100
+	nsim <- 300
 	
 	# select number of CPUs
 		# use code below to check how many CPUs you have - it is better you leave some for other stuff your computer is running (I use 5/8 in my sims)
