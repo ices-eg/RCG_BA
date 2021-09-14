@@ -30,6 +30,7 @@
 	# load data files
 		stock<-"her.25-2932"
 		load(paste("000_Original_Data/her.25-2932/RDB_CS_",stock,"_2009_2019_prepared_202102160702.Rdata"),sep="")
+
 		
 	# create data.table object
 		ca_stock<-data.table(ca_stock)
