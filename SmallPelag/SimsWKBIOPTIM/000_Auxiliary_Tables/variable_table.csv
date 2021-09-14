@@ -1,0 +1,6 @@
+variable;type;original_class_span;smooth_class_span;min_proportion_to_accept_mode
+lenCls;numerical;5;10;0,05
+age;numerical;1;1;0,05
+sex;categorical;NA;NA;0,05
+matStage;categorical;NA;NA;0,05
+mature;categorical;NA;NA;0,05

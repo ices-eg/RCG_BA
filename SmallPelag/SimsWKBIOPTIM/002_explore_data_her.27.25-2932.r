@@ -218,7 +218,8 @@ filename = paste(stock,"_",sampType,sep="")
 
 			# support graph 1	
 			windows(10,10); 
-     # png(filename = paste(dir_output_root,"/005_Min_n_determination_plot1_initial.png", sep=""), width = 960, height = 960)
+
+      png(filename = paste(dir_output_root,"/005_Min_n_determination_plot1_initial.png", sep=""), width = 960, height = 960)
       par(mfrow=c(4,2) ,mar=c(5,4,2,2))
 			plot(mwcv_lenCls~mean_lenCls, ylim = c(0,max(mwcv_lenCls,na.rm=T)), main = "MWCV of length vs. mean length", ylab="MWCV (length)", xlab="mean (length)" )
 			plot(cv_lenCls~mean_lenCls, ylim = c(0,max(cv_lenCls,na.rm=T)), main = "CV of length vs. mean length", ylab="CV (length)", xlab="mean (length)" )

@@ -28,10 +28,9 @@
 	# copy col_names_conversion_table to 000_Auxiliary_Tables	
 	
 	# load data files
-		stock<-"her.25-2932"
-		load(paste("000_Original_Data/her.25-2932/RDB_CS_",stock,"_2009_2019_prepared_202102160702.Rdata"),sep="")
+		stock<-"spr.22-32"
+		if(stock=="spr.22-32")load(paste("000_Original_Data/",stock,"/RDB_CS_",stock,"_2009_2019_prepared_202102161737.Rdata",sep=""))
 
-		
 	# create data.table object
 		ca_stock<-data.table(ca_stock)
 	
@@ -74,7 +73,7 @@
 		# creates mature
 			df0$mature<-NA
 			df0$mature[!is.na(df0$matStage) & df0$matStage %in% c(0,1,2)]<-0
-			df0$mature[!is.na(df0$matStage) & !df0$matStage %in% c(0,1,2)]<-1 # CHECK with Carina
+			df0$mature[!is.na(df0$matStage) & !df0$matStage %in% c(0,1,2)]<-1 # CHECK 
 			df0$mature<-factor(df0$mature, levels=sort(unique(df0$mature)))
 			table(df0$mature, useNA="al")
 		# creates sampID [adapt to your case]		
@@ -87,10 +86,10 @@
 				sum(duplicated(df0$indivId))==0
 	
 	# Save prepared data	
-			df00<-df0[df0$useInSims=="YES" & df0$assumedSamplingMethod=="SRSWOR",]
-			save(df00, file=paste("001_Prepared_Inputs/Input_data_",stock,"_SRSWOR.Rdata",sep=""))		
-			df00<-df0[df0$useInSims=="YES" & df0$assumedSamplingMethod=="STSRSWOR",]
-			save(df00, file=paste("001_Prepared_Inputs/Input_data_",stock,"_STSRSWOR.Rdata",sep=""))		
+		df00<-df0[df0$useInSims=="YES" & df0$assumedSamplingMethod=="SRSWOR",]
+		save(df00, file=paste("001_Prepared_Inputs/Input_data_",stock,"_SRSWOR.Rdata",sep=""))		
+		df00<-df0[df0$useInSims=="YES" & df0$assumedSamplingMethod=="STSRSWOR",]
+		save(df00, file=paste("001_Prepared_Inputs/Input_data_",stock,"_STSRSWOR.Rdata",sep=""))		
 
 
 

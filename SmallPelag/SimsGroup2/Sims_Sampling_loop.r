@@ -124,7 +124,7 @@
 				# if you choose "None" there is no further specification
 				# if you choose "percent", adjust percent below [random vessels representing min x% will be highlighted in final results]
 				# if you choose "vessels", select vessels below [specific vessels will be highlighted in final results]
-				typeRefusals<-"percent" # alternatives: "none", "percent", "vessels"
+				typeRefusals<-"none" # alternatives: "none", "percent", "vessels"
 				if (typeRefusals=="none") refusals<-"none"
 				if (typeRefusals=="percent") refusals<-20
 				if (typeRefusals=="vessels") refusals<-c("XYZ00441","XYZ00743")
@@ -168,11 +168,22 @@
 			
 			set.seed(123)
 			
-			# test dataset
-			dt0 <- as.data.table(testData)
+
 	
 			# nsims [do not change, this script is configured only for 1 simulation)
-				n_sims=1
+				n_sims=100
+	
+			# creates results object
+				aux_resNames<-c("haulId_per_AreaQuarterSpp","haulId_per_RectQuarterSpp","fishTripId_per_AreaQuarterSpp","vslId_per_AreaQuarterSpp","fishInBoxTotal_per_AreaQuarterSpp","fishInBoxSampled_per_AreaQuarterSpp","fullRes","aggRes","aggResArea","aggResRect")
+				res <- sapply(aux_resNames, function(x) NULL)
+				for (i in aux_resNames) {res[[i]]<-sapply(1:n_sims, function(x) NULL)}
+	
+	
+		for (repl in 1:n_sims)
+{		
+print(repl)
+			# test dataset
+			dt0 <- as.data.table(testData)
 	
             #n vsl vessels per week, week as strata
 				n_vessels = 5
@@ -353,7 +364,7 @@
 		
 			# adds expected weight (wtInBox) and number (nInBox) of fish in box
 					
-					boxWt = 4	# in kg
+					boxWt = 5	# in kg
 					
 					samples_her<-dt0agg[vslId %in% target_list, list(landWt=landWt), list(withinTripSampUnit,sppName)][, list(wtInBox = sum(landWt[sppName=="Clupea harengus"])/sum(landWt)*boxWt), withinTripSampUnit]
 					samples_her$sppName<-"Clupea harengus"
@@ -402,48 +413,59 @@
 					})
 					dt_sample2<-rbindlist(ls2)
 				}
-				
+
 			# creates results object
-				aux_resNames<-c("haulId_per_AreaQuarterSpp","haulId_per_RectQuarterSpp","fishTripId_per_AreaQuarterSpp","vslId_per_AreaQuarterSpp","fishInBoxTotal_per_AreaQuarterSpp","fishInBoxSampled_per_AreaQuarterSpp","fullDataFrame")
-				
-				res <- sapply(1:n_sims, function(x) NULL)
-				for (i in 1:n_sims) {res[[i]]<-sapply(aux_resNames, function(x) NULL)}
 				
 				# RESULT1: No samples per area, quarter and spp
 					#table(dt_sample$area, dt_sample$landQuarter, dt_sample$sppName)
-					res[[1]][["haulId_per_AreaQuarterSpp"]]<-table(dt_sample2$area, dt_sample2$landQuarter, dt_sample2$sppName)
+					res[["haulId_per_AreaQuarterSpp"]][[repl]]<-table(dt_sample2$area, dt_sample2$landQuarter, dt_sample2$sppName)
 
 				# RESULT1: No samples per area, quarter and spp
 					#table(dt_sample$area, dt_sample$landQuarter, dt_sample$sppName)
-					res[[1]][["haulId_per_RectQuarterSpp"]]<-table(dt_sample2$rect, dt_sample2$landQuarter, dt_sample2$sppName)
+					res[["haulId_per_RectQuarterSpp"]][[repl]]<-table(dt_sample2$rect, dt_sample2$landQuarter, dt_sample2$sppName)
 					
 				# RESULT2: No trips per area, quarter and spp
 					#tapply(dt_sample$fishTripId, list(dt_sample$area, dt_sample$landQuarter, dt_sample$sppName), function(x) length(unique(x)))
-					res[[1]][["fishTripId_per_AreaQuarterSpp"]]<-tapply(dt_sample2$fishTripId, list(dt_sample2$area, dt_sample2$landQuarter, dt_sample2$sppName), function(x) length(unique(x)))
+					res[["fishTripId_per_AreaQuarterSpp"]][[repl]]<-tapply(dt_sample2$fishTripId, list(dt_sample2$area, dt_sample2$landQuarter, dt_sample2$sppName), function(x) length(unique(x)))
 
 				# RESULT3: No vessels per area, quarter and spp
 					#tapply(dt_sample$vslId, list(dt_sample$area, dt_sample$landQuarter, dt_sample$sppName), function(x) length(unique(x)))
-					res[[1]][["vslId_per_AreaQuarterSpp"]]<-tapply(dt_sample2$vslId, list(dt_sample2$area, dt_sample2$landQuarter, dt_sample2$sppName), function(x) length(unique(x)))
+					res[["vslId_per_AreaQuarterSpp"]][[repl]]<-tapply(dt_sample2$vslId, list(dt_sample2$area, dt_sample2$landQuarter, dt_sample2$sppName), function(x) length(unique(x)))
 
 				# RESULT4: No fish potentially available per area, quarter and spp				
 					#tapply(dt_sample$nInBox, list(dt_sample$area, dt_sample$landQuarter, dt_sample$sppName), sum)
-					res[[1]][["fishInBoxTotal_per_AreaQuarterSpp"]]<-tapply(dt_sample2$nInBox, list(dt_sample2$area, dt_sample2$landQuarter, dt_sample2$sppName), sum)
+					res[["fishInBoxTotal_per_AreaQuarterSpp"]][[repl]]<-tapply(dt_sample2$nInBox, list(dt_sample2$area, dt_sample2$landQuarter, dt_sample2$sppName), sum)
 					#apply(tapply(dt_sample2$nInBox, list(dt_sample2$area, dt_sample2$landQuarter, dt_sample2$sppName), sum, na.rm=T), c(1,3), sum, na.rm=T)
 				
 				# RESULT5: No fish potentially sampled per area, quarter and spp				
 					#tapply(dt_sample$nInBoxSampled, list(dt_sample$area, dt_sample$landQuarter, dt_sample$sppName), sum)
-					res[[1]][["fishInBoxSampled_per_AreaQuarterSpp"]]<-tapply(dt_sample2$nInBoxSampled, list(dt_sample2$area, dt_sample2$landQuarter, dt_sample2$sppName), sum)
+					res[["fishInBoxSampled_per_AreaQuarterSpp"]][[repl]]<-tapply(dt_sample2$nInBoxSampled, list(dt_sample2$area, dt_sample2$landQuarter, dt_sample2$sppName), sum)
 					#apply(tapply(dt_sample2$nInBoxSampled, list(dt_sample2$area, dt_sample2$landQuarter, dt_sample2$sppName), sum, na.rm=T), c(1,3), sum, na.rm=T)
 
 				# adds full results
-					res[[1]][["fullRes"]]<-dt_sample2
+					res[["fullRes"]][[repl]]<-dt_sample2
 
 				# adds aggregated results
-					res[[1]][["aggRes"]]<-dt_sample2[, list(vslIdCount = length(unique(vslId)), fishTripIdCount=length(unique(fishTripId)), haulIdCount=length(unique(withinTripSampUnit)), fishInBoxTotal=sum(nInBox, na.rm=T), fishInBoxSampled=sum(nInBoxSampled, na.rm=T)), c('landQuarter', 'sppName', 'area', 'rect')] [order(landQuarter,sppName,area, rect),]
-					res[[1]][["aggResArea"]]<-dt_sample2[, list(vslIdCount = length(unique(vslId)), fishTripIdCount=length(unique(fishTripId)), haulIdCount=length(unique(withinTripSampUnit)), fishInBoxTotal=sum(nInBox, na.rm=T), fishInBoxSampled=sum(nInBoxSampled, na.rm=T)), c('landQuarter', 'sppName', 'area')] [order(landQuarter,sppName,area),]
-					res[[1]][["aggResRect"]]<-dt_sample2[, list(vslIdCount = length(unique(vslId)), fishTripIdCount=length(unique(fishTripId)), haulIdCount=length(unique(withinTripSampUnit)), fishInBoxTotal=sum(nInBox, na.rm=T), fishInBoxSampled=sum(nInBoxSampled, na.rm=T)), c('landQuarter', 'sppName', 'rect')] [order(landQuarter,sppName,rect),]
-				
-			
+					res[["aggRes"]][[repl]]<-dt_sample2[, list(vslIdCount = length(unique(vslId)), fishTripIdCount=length(unique(fishTripId)), haulIdCount=length(unique(withinTripSampUnit)), fishInBoxTotal=sum(nInBox, na.rm=T), fishInBoxSampled=sum(nInBoxSampled, na.rm=T)), c('landQuarter', 'sppName', 'area', 'rect')] [order(landQuarter,sppName,area, rect),]
+					res[["aggResArea"]][[repl]]<-dt_sample2[, list(vslIdCount = length(unique(vslId)), fishTripIdCount=length(unique(fishTripId)), haulIdCount=length(unique(withinTripSampUnit)), fishInBoxTotal=sum(nInBox, na.rm=T), fishInBoxSampled=sum(nInBoxSampled, na.rm=T)), c('landQuarter', 'sppName', 'area')] [order(landQuarter,sppName,area),]
+					res[["aggResRect"]][[repl]]<-dt_sample2[, list(vslIdCount = length(unique(vslId)), fishTripIdCount=length(unique(fishTripId)), haulIdCount=length(unique(withinTripSampUnit)), fishInBoxTotal=sum(nInBox, na.rm=T), fishInBoxSampled=sum(nInBoxSampled, na.rm=T)), c('landQuarter', 'sppName', 'rect')] [order(landQuarter,sppName,rect),]
+}				
+	
+	
+	# ===========================
+	# Compiles results
+	# ===========================	
+		target_res<-"fishInBoxSampled_per_AreaQuarterSpp"
+		
+		res[[target_res]]
+		
+		a<-data.table(reshape2::melt(res[[target_res]]))
+		a<-a[,list(mean=mean(value), min=min(value), median=median(value), max=max(value), sd=sd(value)),c('Var1','Var2','Var3')]
+		a$sd[is.na(a$sd)]<-0
+		a$ci_low=round(a$mean-1.96*a$sd/sqrt(n_sims),0)
+		a$ci_high=round(a$mean+1.96*a$sd/sqrt(n_sims),0)
+		a
+
 
 	# ===========================
 	# Maps
