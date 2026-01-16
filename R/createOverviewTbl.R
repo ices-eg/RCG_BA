@@ -143,7 +143,7 @@ flattenBVData <- function(BVdata) {
   
   #print all unique BVvalUnitScale values
   uniqueScales <- unique(BVdata$BVvalUnitScale)
-  expectedScales <- c("Ageyear", "Lengthmm", "Weightg", "NotApplicable", "Sex", "SMSF")
+  expectedScales <- c("Ageyear", "Lengthmm", "Weightg", "NotApplicable", "Sex", "SMSF", NA)
   
   if(!all(uniqueScales %in% expectedScales)) {
     stop(paste0("Unexpected BVvalUnitScale values found: ",
