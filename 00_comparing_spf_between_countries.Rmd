@@ -222,8 +222,9 @@ h1DE <- filterRDBESDataObject(
 )
 h1DE
 ```
+
 ```{r}
-h1DE$FT
+h1DE$FM
 ```
 
 
@@ -429,6 +430,32 @@ print(plt)
 
 ```
 
+```{r}
+mergers <- c(area = "CLarea")
+
+agg_res <- aggregate_two_measures(
+  count_formula = weight ~ area ,
+   count_data    = estTbl[!is.na(estTbl$weight), ],
+   count_fun     = length,
+   sum_formula   = CLsciWeight ~ CLarea,
+   sum_data      = cl$CL,
+   sum_fun       = sum,
+   merge_by      = mergers
+)
+ #convert to tons
+agg_res$scaleFactor <- agg_res$scaleFactor/1000 
+
+plt <- plot_from_aggregated(
+   agg_res,
+   x = "CLarea",
+sum_label = "CL Scientific Weight (t)",
+count_label = "Number of Weight Measurements",
+)
+
+plt + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
 
 ```{r}
 mergers <- c(country = "CLvesFlagCou", 
@@ -458,8 +485,71 @@ facet = "speciesName ~ ."
 print(plt)
 
 ```
+```{r}
+mergers <- c(area = "CLarea", 
+             species = "CLspecCode")
 
+agg_res <- aggregate_two_measures(
+  count_formula = weight ~ area +  species,
+   count_data    = estTbl[!is.na(estTbl$weight), ],
+   count_fun     = length,
+   sum_formula   = CLsciWeight ~ CLarea+ CLspecCode,
+   sum_data      = cl$CL,
+   sum_fun       = sum,
+   merge_by      = mergers
+)
+agg_res$speciesName <- spmap[as.character(agg_res$CLspecCode)]
+ #convert to tons
+agg_res$scaleFactor <- agg_res$scaleFactor/1000 
 
+plt <- plot_from_aggregated(
+   agg_res,
+   x = "CLarea",
+sum_label = "CL Scientific Weight (t)",
+count_label = "Number of Weight Measurements",
+facet = "speciesName ~ ."
+)
+
+plt + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+```{r, fig.width=6, fig.height=12}
+mergers <- c(area = "CLarea", 
+             country = "CLvesFlagCou",
+             species = "CLspecCode")
+
+agg_res <- aggregate_two_measures(
+  count_formula = weight ~ area +  species + country,
+   count_data    = estTbl[!is.na(estTbl$weight) , ],
+   count_fun     = length,
+   sum_formula   = CLsciWeight ~ CLarea+ CLspecCode + CLvesFlagCou,
+   sum_data      = cl$CL,
+   sum_fun       = sum,
+   merge_by      = mergers
+)
+agg_res$speciesName <- spmap[as.character(agg_res$CLspecCode)]
+ #convert to tons
+agg_res$scaleFactor <- agg_res$scaleFactor/1000 
+
+plt <- plot_from_aggregated(
+   agg_res,
+   x = "CLarea",
+sum_label = "CL Scientific Weight (t)",
+count_label = "Number of Weight Measurements",
+facet = "CLvesFlagCou ~ speciesName "
+)
+
+plt + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+```{r, fig.width=6, fig.height=12}
+
+plt + theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  coord_cartesian(ylim = c(0, 1000)) + labs(subtitle = "Zoomed in to max 1000 samples")
+  
+
+```
 
 
 ```{r}

@@ -126,8 +126,8 @@ flattenEstObject <- function(estObj) {
               "BVvalueMeas")
 
   keepCols <- c(setdiff(names(estObj), BVcols), "fishId")
-
-
+  
+  
   flatBV <- flattenBVData(unique(estObj[, ..BVcols]))
   #merge the two data.tables
   res <- merge(unique(estObj[, ..keepCols]), flatBV, by = "fishId", all.x = TRUE)
@@ -146,7 +146,7 @@ flattenBVData <- function(BVdata) {
   expectedScales <- c("Ageyear", "Lengthmm", "Weightg", "NotApplicable", "Sex", "SMSF")
   
   if(!all(uniqueScales %in% expectedScales)) {
-    warning(paste0("Unexpected BVvalUnitScale values found: ",
+    stop(paste0("Unexpected BVvalUnitScale values found: ",
                    paste(setdiff(uniqueScales, expectedScales), collapse = ", ")))
   }
   
