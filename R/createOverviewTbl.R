@@ -1,5 +1,14 @@
-
-createOverviewTbl <- function(dataObj) {
+#' Create Overview Table from RDBESDataObject
+#' 
+#' This function generates an overview table from a given RDBESDataObject.
+#' The overview table includes key information such as year, country, sampling scheme,
+#' sampling frame, hierarchy levels, area, rectangle, quarter, metier, fish ID,
+#' trip ID, species, age, length, weight, and inclusion probability.
+#' @param dataObj An RDBESDataObject containing the data to be processed.
+#' @param incProbFun  A function to calculate inclusion probabilities. that take and RDBESEstObject return a named list where names are individual fish ids and values are the inclusion probabilities. 
+#' #' @return A data.table containing the overview table with specified columns.
+#' @import data.table
+createOverviewTbl <- function(dataObj, incProbFun) {
   # Check if data is a RBDESDataObject
   if (!inherits(dataObj, "RDBESDataObject")) {
     stop("Input must be a dataObject.")
@@ -89,6 +98,11 @@ createOverviewTbl <- function(dataObj) {
 
   #add the inclusionProbability column as NA
   flatEstObj[, inclusionProbability := NA]
+  
+  fishIncProb <- incProbFun(estObj)
+  
+  # Fill inclusion probabilities
+  flatEstObj$inclusionProbability <- fishIncProb[as.character(flatEstObj$fishId)]
 
   finalColumns <- c(
     "year",
@@ -161,4 +175,5 @@ flattenBVData <- function(BVdata) {
   flatData <- merge(flatData, weightData, by = "fishId", all = TRUE)
   return(flatData)
 }
+
 

@@ -262,6 +262,15 @@ Apparently there is Lithunian data with FIXED sampling method in BV in H8. This 
 
 Taking different hierarchies and merging their BV tables iwth some upper hierarchy tables to see if all required fields are present for ratio estimation.
 
+```{r}
+#the most basic function possible for dummy values
+ratioIncProbFun <- function(estObj) {
+  warning("Using dummy inclusion probability function that returns 1 for all fishIds")
+  uniqFishIds <- unique(estObj$fishId)
+  return(setNames(rep(1, length(uniqFishIds)), uniqFishIds))
+}
+source("R/createOverviewTbl.R")
+```
 
 ```{r}
 h1Vars <- c("FOarea", "FOmetier6","FOendDate")
@@ -276,19 +285,19 @@ h8Vars <- c("LEarea", "LEmetier6","LEdate")
 
 ```{r}
 h1 <- spfs[[paste0("H",1)]]
-h1e <- createOverviewTbl(h1)
+h1e <- createOverviewTbl(h1, ratioIncProbFun)
 h1e
 ```
 
 ```{r}
 h2 <- spfs[[paste0("H",2)]]
-h2e <- createOverviewTbl(h2)
+h2e <- createOverviewTbl(h2, ratioIncProbFun)
 h2e
 ```
 
 ```{r}
 h3 <- spfs[[paste0("H",3)]]
-h3e <- createOverviewTbl(h3)
+h3e <- createOverviewTbl(h3, ratioIncProbFun)
 h3e
 ```
 
@@ -305,8 +314,12 @@ if(any(is.na(h8$LE$LEdate))){
 }
 ```
 
+
+
+
+
 ```{r}
-h8e <- createOverviewTbl(h8)
+h8e <- createOverviewTbl(h8, ratioIncProbFun)
 h8e
 ```
 
