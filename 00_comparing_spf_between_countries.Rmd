@@ -1,0 +1,469 @@
+---
+title: "Comparing Different RDBES Datasets for SPF Baltic"
+author: "Marie Storr-Paulsen, Kirsten Håkansson, Nuno Prista, Elor Sepp, Paul Kotterba, Nicolas Goñi & Richard Meitern"
+date: "`r Sys.Date()`"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+There is need for comparing diferent sampling schemes.
+
+
+
+
+
+```{r}
+library(RDBEScore)
+source("R/createOverviewTbl.R")
+```
+
+```{r}
+list.files("./data")
+```
+```{r}
+spfFull <- createRDBESDataObject()
+hs <- c(1, 13, 2, 3, 4, 5, 6, 7, 8, 9)
+for(i in hs){
+  h <- createRDBESDataObject("./data/CS sample data RDBES 2024 Baltic HER SPR.zip",
+                             Hierarchy = i)
+  
+  spfFull <- combineRDBESDataObjects(spfFull, h, strict = FALSE)
+}
+```
+
+### Select Relevant Data
+
+Identifying sampling schemes and stratums used in different countries
+
+```{r}
+x <- merge(spfFull$SD, spfFull$DE, by = "DEid")
+table(x$DEsampScheme,x$SDctry)
+```
+```{r}
+table(x$DEhierarchy,x$SDctry)
+```
+```{r}
+
+table(x[x$DEsampScheme == "National Routine",c("DEstratumName","SDctry")])
+```
+
+
+
+
+```{r}
+sampSchemes <- c(
+'Baltic SPF regional',
+#'DEU_Baltic_HER',
+'DNK_Industrial_Sampling',
+'EST_OnShoreCommercialPelagic',
+'National Routine',
+'PL-Baltic-at-Sea',
+'PL-Baltic-Onshore'
+)
+
+```
+
+```{r}
+#National routine OK
+correctNRStratums <- c(
+  'GOR PEL-1',
+  'OSF PEL-1',
+  'BS-TR_Q1',
+  'BS-TR_Q2',
+  'BS-TR_Q3',
+  'BS-TR_Q4',
+  'BS-TR',
+  'Q1-29',
+  'Q1-30',
+  'Q1-31',
+  'Q1-32',
+  'Q2-29',
+  'Q2-30',
+  'Q2-31',
+  'Q2-32',
+  'Q3-29',
+  'Q3-30',
+  'Q3-31',
+  'Q3-32',
+  'Q4-29',
+  'Q4-30',
+  'Q4-31',
+  'Q4-32'
+)
+```
+
+
+```{r}
+allCorrectStratums <- x[x$DEsampScheme != "National Routine", "DEstratumName"]
+intersection <- intersect(allCorrectStratums,
+          unlist(x[x$DEsampScheme == "National Routine",c("DEstratumName")]))
+if(length(intersection) > 0){
+  warning("The following stratums are used both in National Routine and other sampling schemes:")
+  print(intersection)
+} else {
+  message("No overlapping stratums between National Routine and other sampling schemes")
+}
+```
+
+
+
+
+```{r}
+spfs <- list()
+hs <- c(1, 13, 2, 3, 4, 5, 6, 7, 8, 9)
+for(i in hs){
+  h <- createRDBESDataObject("./data/CS sample data RDBES 2024 Baltic HER SPR.zip",
+                             Hierarchy = i)
+  
+  spfs[[paste0("H",i)]] <- filterRDBESDataObject(
+    RDBESDataObjectToFilter = h,
+    fieldsToFilter = c("DEsampScheme"),
+    valuesToFilter = c(sampSchemes),
+    killOrphans = TRUE
+  )
+}
+```
+
+
+```{r}
+#for theese where the sampling scheme is National Routine
+#filter out incorrect stratums
+for(i in hs){
+  tbl <- spfs[[paste0("H",i)]]
+  if(length(tbl$DE$DEid) == 0){
+    next
+  }
+  nrdeids <- tbl$DE$DEid[tbl$DE$DEsampScheme == "National Routine" &
+                           !(tbl$DE$DEstratumName %in% correctNRStratums)]
+  print(paste0("Hierarchy ", i, ": Removing ", length(nrdeids), " DE records with incorrect stratums"))
+  if(length(nrdeids) > 0){
+    spfs[[paste0("H",i)]] <- filterRDBESDataObject(
+      RDBESDataObjectToFilter = tbl,
+      fieldsToFilter = c("DEid"),
+      valuesToFilter = c(setdiff(unique(tbl$DE$DEid), nrdeids)),
+      killOrphans = TRUE
+    )
+  }
+}
+```
+
+
+
+```{r}
+h1Full <- createRDBESDataObject("./data/CS sample data RDBES 2024 Baltic HER SPR.zip",
+                             Hierarchy = 1)
+h1Full
+```
+
+```{r}
+#check if filtering correctly has removed orphaned BV records
+h1 <- spfs[[paste0("H",1)]]
+
+
+bvx <- getLinkedDataFromLevel("DEid", setdiff(h1Full$DE$DEid, h1$DE$DEid),
+                              h1Full, "BV")
+if(nrow(bvx) > 0){
+  bvx
+} else {
+  message("No unexpected BV records found")
+}
+
+```
+```{r}
+#list couuntries in all hierarchies
+for(i in hs){
+  tbl <- spfs[[paste0("H",i)]]
+  if(length(tbl$DE$DEid) == 0){
+    next
+  }
+  countries <- unique(getLinkedDataFromLevel("DEid", tbl$DE$DEid, tbl, "SD")$SDctry)
+  print(paste0("Hierarchy ", i, ": Countries - ", paste(countries, collapse = ", ")))
+}
+```
+
+
+### Investigate Hierarchies
+
+Lets see if there are any unexpected records in the hierarchies and how many records are there in each hierarchy.
+
+```{r}
+for(i in hs){
+  tbl <- spfs[[paste0("H",i)]]
+  if(length(tbl$DE$DEid) == 0){
+    next
+  }
+  suppressWarnings(print(tbl))
+}
+```
+```{r}
+hierarchies2Drop <- setdiff(hs, c(1, 2,3,8))
+for(i in hierarchies2Drop){
+  spfs[[paste0("H",i)]] <- NULL
+}
+
+```
+
+#### Look Germany H1
+
+```{r}
+h1 <- spfs[[paste0("H",1)]]
+h1DE <- filterRDBESDataObject(
+  RDBESDataObjectToFilter = h1,
+  fieldsToFilter = c("SDctry"),
+  valuesToFilter = c("DE"),
+  killOrphans = TRUE
+)
+h1DE
+```
+```{r}
+h1DE$FT
+```
+
+
+
+
+
+#### Investigating FIXED in Hierarchy 8 
+
+```{r}
+#check H8
+h8 <- spfs[[paste0("H",8)]]
+h8
+```
+
+```{r}
+#check the FIXED un the BV that is unexpected
+table(h8$BV$BVselectMeth)
+```
+
+
+
+```{r}
+h8LE <- getLinkedDataFromLevel("BVselectMeth", "FIXED", h8, "LE", verbose = F)
+#doing it because there is a FT: 0 records in the H8 object that breaks the linking
+VSid <- unique(h8LE$VSid)
+
+getLinkedDataFromLevel("VSid", VSid, h8, "SD", verbose = F)
+
+```
+Apparently there is Lithunian data with FIXED sampling method in BV in H8. This is not expected.
+
+
+
+### Merging the BV tables 
+
+Taking different hierarchies and merging their BV tables iwth some upper hierarchy tables to see if all required fields are present for ratio estimation.
+
+
+```{r}
+h1Vars <- c("FOarea", "FOmetier6","FOendDate")
+h2Vars <- c("FOarea", "FOmetier6","FOendDate")
+h3Vars <- c("FOarea", "FOmetier6","FOendDate")
+
+#LEdate (optional) or what eg TE week or month?
+h8Vars <- c("LEarea", "LEmetier6","LEdate")
+
+
+```
+
+```{r}
+h1 <- spfs[[paste0("H",1)]]
+h1e <- createOverviewTbl(h1)
+h1e
+```
+
+```{r}
+h2 <- spfs[[paste0("H",2)]]
+h2e <- createOverviewTbl(h2)
+h2e
+```
+
+```{r}
+h3 <- spfs[[paste0("H",3)]]
+h3e <- createOverviewTbl(h3)
+h3e
+```
+
+
+
+
+```{r}
+h8 <- spfs[[paste0("H",8)]]
+#check ig any dates are NA
+if(any(is.na(h8$LE$LEdate))){
+  warning("There are LE records with missing LEdate in H8")
+} else {
+  message("All LE records have LEdate in H8")
+}
+```
+
+```{r}
+h8e <- createOverviewTbl(h8)
+h8e
+```
+
+
+
+For a basic ratio estimation all tabels have the required fields filled.
+
+### Combine All Estimation Tables
+
+```{r}
+estTbl <- rbind(h1e, h2e, h3e, h8e)
+table(estTbl$metier, estTbl$upperHierarchy)
+```
+
+```{r}
+table(estTbl$lowerHierarchy, estTbl$species, useNA = "always")
+```
+
+
+```{r}
+table(estTbl$metier, estTbl$country)
+```
+
+```{r}
+table(estTbl$metier, estTbl$samplingScheme)
+```
+```{r}
+##keep meteirs that start with OTB, OTM, PTM
+keepMetiers <- grep("^(OTB|OTM|PTM)", estTbl$metier, value = TRUE)
+
+keepMetiers <- setdiff(keepMetiers, "OTB_DEF_>=120_3_120")
+
+estTbl <- estTbl[estTbl$metier %in% keepMetiers, ]
+#relevel metier factor
+estTbl$metier <- factor(estTbl$metier, levels = unique(keepMetiers))
+
+table(estTbl$metier, estTbl$country)
+```
+
+```{r}
+table(estTbl$country, estTbl$lowerHierarchy)
+```
+```{r}
+table(estTbl[!is.na(estTbl$weight), c("country", "lowerHierarchy")])
+```
+```{r}
+spmap <- c(
+  "126417" = "Herring",
+  "126425" = "Sprat"
+)
+estTbl$speciesName <- spmap[as.character(estTbl$species)]
+table(estTbl[!is.na(estTbl$weight), c("area", "speciesName")])
+```
+```{r}
+table(estTbl[!is.na(estTbl$weight), c("country", "speciesName")])
+```
+```{r}
+tripTbl <- unique(estTbl[!duplicated(estTbl$tripId), ])
+table(tripTbl$area, tripTbl$country)
+```
+
+
+
+## Import Commercial Landing (CL) 
+
+```{r}
+cl <- createRDBESDataObject("./data/CL Landings data RDBES 2024 Baltic HER SPR.zip")
+cl
+```
+```{r}
+clSummary <- aggregate(CLsciWeight ~ CLvesFlagCou + CLspecCode + CLarea + CLcatchCat,
+          data = cl$CL,
+          FUN = sum,
+          na.rm = TRUE)
+writexl::write_xlsx(clSummary, "./results/clSummary.xlsx")
+```
+
+
+
+```{r}
+#merge CL with estTbl by keeping only
+#relavant metier cat
+cl <- filterRDBESDataObject(
+  RDBESDataObjectToFilter = cl,
+  fieldsToFilter = c("CLmetier6"),
+  valuesToFilter = c(keepMetiers),
+  killOrphans = TRUE
+)
+cl
+```
+```{r}
+library(ggplot2)
+theme_set(theme_bw())
+source("R/plottingHelpers.R")
+```
+
+
+```{r}
+mergers <- c(country = "CLvesFlagCou")
+
+agg_res <- aggregate_two_measures(
+  count_formula = weight ~ country,
+   count_data    = estTbl[!is.na(estTbl$weight), ],
+   count_fun     = length,
+   sum_formula   = CLsciWeight ~ CLvesFlagCou,
+   sum_data      = cl$CL,
+   sum_fun       = sum,
+   merge_by      = mergers
+)
+#convert to tons
+agg_res$scaleFactor <- agg_res$scaleFactor/1000  
+
+plt <- plot_from_aggregated(
+   agg_res,
+   x = "CLvesFlagCou",
+sum_label = "CL Scientific Weight (t)",
+count_label = "Number of Weight Measurements",
+)
+
+print(plt)
+
+```
+
+
+```{r}
+mergers <- c(country = "CLvesFlagCou", 
+             species = "CLspecCode")
+
+agg_res <- aggregate_two_measures(
+  count_formula = weight ~ country +  species,
+   count_data    = estTbl[!is.na(estTbl$weight), ],
+   count_fun     = length,
+   sum_formula   = CLsciWeight ~ CLvesFlagCou + CLspecCode,
+   sum_data      = cl$CL,
+   sum_fun       = sum,
+   merge_by      = mergers
+)
+agg_res$speciesName <- spmap[as.character(agg_res$CLspecCode)]
+ #convert to tons
+agg_res$scaleFactor <- agg_res$scaleFactor/1000 
+
+plt <- plot_from_aggregated(
+   agg_res,
+   x = "CLvesFlagCou",
+sum_label = "CL Scientific Weight (t)",
+count_label = "Number of Weight Measurements",
+facet = "speciesName ~ ."
+)
+
+print(plt)
+
+```
+
+
+
+
+```{r}
+#END
+```
+
+
